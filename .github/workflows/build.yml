@@ -19,18 +19,23 @@ env:
   NDK_VERSION: r28c
   UPLOAD_ARTIFACT: "${{ inputs.upload-artifact }}"
   TAG_NAME: "${{ inputs.tag-name }}"
-  TARGET_NAME_gz: "Hiddify-Linux-x64-AppImage.tar"
-  TARGET_NAME_AppImage: "Hiddify-Linux-x64-AppImage"
-  TARGET_NAME_deb: "Hiddify-Debian-x64"
-  # TARGET_NAME_rpm: "Hiddify-rpm-x64"
-  TARGET_NAME_apk: "Hiddify-Android"
-  TARGET_NAME_aab: "Hiddify-Android"
-  TARGET_NAME_exe: "Hiddify-Windows-Setup-x64"
-  TARGET_NAME_msix: "Hiddify-Windows-x64"
-  TARGET_NAME_zip: "Hiddify-Windows-Portable-x64"
-  TARGET_NAME_dmg: "Hiddify-MacOS"
-  TARGET_NAME_pkg: "Hiddify-MacOS-Installer"
-  TARGET_NAME_ipa: "Hiddify-iOS"
+  SUBSCRIPTION_URL: "${{ vars.SUBSCRIPTION_URL }}"
+  HAS_ANDROID_KEY: "${{ secrets.ANDROID_SIGNING_KEY != '' }}"
+  HAS_WINDOWS_KEY: "${{ secrets.WINDOWS_SIGNING_KEY != '' }}"
+  HAS_APPLE_CERT: "${{ secrets.APPLE_CERTIFICATE_P12 != '' }}"
+  HAS_PLAY_JSON: "${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != '' }}"
+  TARGET_NAME_gz: "Okno-Linux-x64-AppImage.tar"
+  TARGET_NAME_AppImage: "Okno-Linux-x64-AppImage"
+  TARGET_NAME_deb: "Okno-Debian-x64"
+  # TARGET_NAME_rpm: "Okno-rpm-x64"
+  TARGET_NAME_apk: "Okno-Android"
+  TARGET_NAME_aab: "Okno-Android"
+  TARGET_NAME_exe: "Okno-Windows-Setup-x64"
+  TARGET_NAME_msix: "Okno-Windows-x64"
+  TARGET_NAME_zip: "Okno-Windows-Portable-x64"
+  TARGET_NAME_dmg: "Okno-MacOS"
+  TARGET_NAME_pkg: "Okno-MacOS-Installer"
+  TARGET_NAME_ipa: "Okno-iOS"
   
 
 jobs:
@@ -119,14 +124,14 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Import Apple Codesign Certificates
-        if: ${{ inputs.upload-artifact && startsWith(matrix.os,'macos') }}
+        if: ${{ inputs.upload-artifact && startsWith(matrix.os,'macos') && env.HAS_APPLE_CERT == 'true' }}
         uses: apple-actions/import-codesign-certs@v6
         with: 
             p12-file-base64: "${{ secrets.APPLE_CERTIFICATE_P12 }}"
             p12-password: "${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}"
 
       - name: Import Apple Mobile Provisioning Profile
-        if: ${{ inputs.upload-artifact && startsWith(matrix.os,'macos') }}
+        if: ${{ inputs.upload-artifact && startsWith(matrix.os,'macos') && env.HAS_APPLE_CERT == 'true' }}
         run: |
            mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
            echo "${{secrets.APPLE_MOBILE_PROVISIONING_PROFILES_TARGZ_BASE64}}"|base64 --decode | tar xz -C ~/Library/MobileDevice/Provisioning\ Profiles
@@ -217,7 +222,7 @@ jobs:
           echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
 
       - name: Setup Android Signing Properties
-        if: ${{ inputs.upload-artifact && startsWith(matrix.platform,'android') }}
+        if: ${{ inputs.upload-artifact && startsWith(matrix.platform,'android') && env.HAS_ANDROID_KEY == 'true' }}
         run: |
           echo "${{ secrets.ANDROID_SIGNING_KEY }}" | base64 --decode > android/key.jks
           echo "storeFile=$(pwd)/android/key.jks" > android/key.properties
@@ -226,7 +231,7 @@ jobs:
           echo "keyAlias=${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}" >> android/key.properties
 
       - name: Setup Windows Signing Properties
-        if: ${{ inputs.upload-artifact && startsWith(matrix.platform,'windows') }}
+        if: ${{ inputs.upload-artifact && startsWith(matrix.platform,'windows') && env.HAS_WINDOWS_KEY == 'true' }}
         run: |
             [IO.File]::WriteAllBytes("windows\sign.pfx", [Convert]::FromBase64String("${{ secrets.WINDOWS_SIGNING_KEY }}"))
             (Get-Content "windows\packaging\msix\make_config.yaml") -replace '^certificate_password:.*$', 'certificate_password: ${{ secrets.WINDOWS_SIGNING_PASSWORD }}' | Set-Content "windows\packaging\msix\make_config.yaml"
@@ -414,19 +419,6 @@ jobs:
           body_path: './release.md'
           prerelease: true
 
-      - name: Create or Update Draft Release
-        uses: softprops/action-gh-release@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN_FOR_HIDDIFY_APP_REPO }}
-          GITHUB_REPOSITORY: hiddify/hiddify-app
-        with:
-          files: ./out/*
-          name: 'draft'
-          tag_name: 'draft'
-          body_path: './release.md'
-          target_commitish: '530bf77839a74d4f13847ba244a20734ac7ab119'
-          prerelease: true
-          repository: hiddify/hiddify-app
 
   upload-release:
     permissions: write-all
@@ -468,13 +460,15 @@ jobs:
           files: ./out/*
 
       - name: Create service_account.json
+        if: ${{ env.HAS_PLAY_JSON == 'true' }}
         run: echo '${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}' > service_account.json
 
       - name: Deploy to Google Play Internal Testers
+        if: ${{ env.HAS_PLAY_JSON == 'true' }}
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJson: service_account.json
-          packageName: app.hiddify.com
+          packageName: app.okno.family
           releaseName: ${{ env.TAG_NAME }}
           releaseFiles: ./hiddify-android-market.aab
           track: 'beta'
@@ -482,7 +476,7 @@ jobs:
 
   upload-to-testflight:
     needs: [build]
-    if: ${{ inputs.upload-artifact &&  inputs.tag-name != 'draft' }}
+    if: ${{ inputs.upload-artifact && inputs.tag-name != 'draft' && vars.ENABLE_TESTFLIGHT == 'true' }}
     #if: ${{ inputs.upload-artifact }}
     runs-on: macOS-latest
     timeout-minutes: 30

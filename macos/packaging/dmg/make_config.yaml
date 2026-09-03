@@ -1,4 +1,4 @@
-title: Hiddify
+title: Okno
 background: "background.png"
 window:
   size:
@@ -12,4 +12,4 @@ contents:
   - x: 160
     y: 190
     type: file
-    path: Hiddify.app
+    path: Okno.app

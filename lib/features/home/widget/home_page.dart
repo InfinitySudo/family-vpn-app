@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:hiddify/core/app_info/app_info_provider.dart';
 import 'package:hiddify/core/localization/translations.dart';
-import 'package:hiddify/core/router/bottom_sheets/bottom_sheets_notifier.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hiddify/features/family/family_no_server_notice.dart';
 import 'package:hiddify/features/home/widget/connection_button.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
 import 'package:hiddify/features/profile/widget/profile_tile.dart';
@@ -32,7 +33,10 @@ class HomePage extends HookConsumerWidget {
         //         },
         //       )
         //     : null,
-        title: Row(
+        // Долгое нажатие на заголовок — скрытый вход в настройки (для админа).
+        title: GestureDetector(
+          onLongPress: () => context.go("/settings"),
+          child: Row(
           children: [
             Assets.images.logo.svg(height: 24),
             const Gap(8),
@@ -47,6 +51,7 @@ class HomePage extends HookConsumerWidget {
             ),
           ],
         ),
+        ),
         actions: [
           // IconButton(
           //     onPressed: () => const QuickSettingsRoute().push(context),
@@ -60,14 +65,6 @@ class HomePage extends HookConsumerWidget {
           //     material: (context, platform) => MaterialIconButtonData(
           //           tooltip: t.profile.add.buttonText,
           //         )),
-          Semantics(
-            key: const ValueKey("profile_add_button"),
-            label: t.pages.profiles.add,
-            child: IconButton(
-              icon: Icon(Icons.add_rounded, color: theme.colorScheme.primary),
-              onPressed: () => ref.read(bottomSheetsNotifierProvider.notifier).showAddProfile(),
-            ),
-          ),
           const Gap(8),
         ],
       ),
@@ -107,7 +104,7 @@ class HomePage extends HookConsumerWidget {
                             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             color: Theme.of(context).colorScheme.surfaceContainer,
                           ),
-                          _ => const Text(""),
+                          _ => const FamilyNoServerNotice(),
                         },
                         const SliverFillRemaining(
                           hasScrollBody: false,
@@ -139,43 +136,6 @@ class HomePage extends HookConsumerWidget {
                 ),
               ),
             ),
-            if (ref.watch(hasAnyProfileProvider).value ?? false)
-              Positioned(
-                right: 0,
-                left: 0,
-                bottom: 0,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Material(
-                      color: theme.colorScheme.primaryContainer,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(16),
-                        topRight: Radius.circular(16),
-                      ),
-                      child: InkWell(
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(16),
-                          topRight: Radius.circular(16),
-                        ),
-                        onTap: () => ref.read(bottomSheetsNotifierProvider.notifier).showQuickSettings(),
-                        child: Container(
-                          height: 32,
-                          padding: const EdgeInsetsDirectional.only(start: 16, end: 8),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(t.pages.home.quickSettings),
-                              const Gap(4),
-                              const Icon(Icons.arrow_drop_up_rounded, size: 16),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
           ],
         ),
       ),

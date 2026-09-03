@@ -1,4 +1,4 @@
-display_name: Hiddify
+display_name: Okno
 package_name: hiddify
 maintainer:
   name: hiddify
@@ -15,24 +15,24 @@ icon: assets/images/source/ic_launcher_border.png
 # 2. Remove conflicting hiddify.desktop files from users' .local directories (cleanup AppImage artifacts)
 # 3. Update the desktop database to apply changes immediately
 postinstall_scripts:
-  - echo "Setting up Hiddify..."
+  - echo "Setting up Okno..."
   - sudo sed -i '/^\[Desktop Entry\]/a StartupWMClass=app.hiddify.com' "/usr/share/applications/hiddify.desktop"
   - echo "Search and remove hiddify.desktop from .local"
   - for user_dir in /home/*; do if [ -f "$user_dir/.local/share/applications/hiddify.desktop" ]; then rm -f "$user_dir/.local/share/applications/hiddify.desktop"; echo "Found and removed hiddify.desktop from $user_dir .local"; fi; done
   - update-desktop-database /usr/share/applications
-  - echo "Hiddify is ready to use :)"
+  - echo "Okno is ready to use :)"
 
 # Post-uninstallation tasks:
-# 1. Iterate through all user directories to remove Hiddify configuration and data
+# 1. Iterate through all user directories to remove Okno configuration and data
 # 2. Clean up root user data to ensure a clean removal
 postuninstall_scripts:
-  - echo "Removing Hiddify user data..."
+  - echo "Removing Okno user data..."
   - for user_dir in /home/*; do if [ -d "$user_dir/.local/share/hiddify" ]; then rm -rf "$user_dir/.local/share/hiddify"; echo "Removed data from $user_dir"; fi; done
   - rm -rf /root/.local/share/hiddify
-  - echo "Hiddify data cleanup complete."
+  - echo "Okno data cleanup complete."
 
 keywords:
-  - Hiddify
+  - Okno
   - Proxy
   - VPN
   - V2ray
@@ -41,7 +41,7 @@ keywords:
   - Psiphon
   - OpenVPN
 
-generic_name: Hiddify
+generic_name: Okno
 
 categories:
   - Network

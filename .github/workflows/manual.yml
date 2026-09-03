@@ -1,0 +1,19 @@
+name: Manual build
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "prod (стабильное ядро) или dev"
+        type: choice
+        default: prod
+        options: [prod, dev]
+
+jobs:
+  build-draft:
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+    permissions: write-all
+    with:
+      upload-artifact: true
+      tag-name: "draft"
+      channel: "${{ inputs.channel }}"

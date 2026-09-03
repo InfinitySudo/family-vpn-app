@@ -10,6 +10,9 @@ import 'package:hiddify/core/router/go_router/routing_config_notifier.dart';
 import 'package:hiddify/features/stats/widget/side_bar_stats_overview.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+/// Семейная сборка: без нижнего меню и боковой панели — только экран с кнопкой.
+const bool kFamilyMinimalUi = true;
+
 class MyAdaptiveLayout extends HookConsumerWidget {
   const MyAdaptiveLayout({
     super.key,
@@ -55,7 +58,7 @@ class MyAdaptiveLayout extends HookConsumerWidget {
     }, [isMobileBreakpoint, showProfilesAction, navigationShell.currentIndex]);
     return Material(
       child: Scaffold(
-        body: isMobileBreakpoint
+        body: (kFamilyMinimalUi || isMobileBreakpoint)
             ? navigationShell
             : Row(
                 children: [
@@ -79,7 +82,7 @@ class MyAdaptiveLayout extends HookConsumerWidget {
                   Expanded(child: navigationShell),
                 ],
               ),
-        bottomNavigationBar: isMobileBreakpoint
+        bottomNavigationBar: (isMobileBreakpoint && !kFamilyMinimalUi)
             ? FocusScope(
                 node: navScopeNode,
                 child: NavigationBar(

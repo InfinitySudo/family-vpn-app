@@ -7,6 +7,8 @@ enum Environment {
   static const sentryDSN = String.fromEnvironment("sentry_dsn");
   // This environment variable is set in the 'windows-release-zip' command
   static const isPortable = bool.fromEnvironment("portable");
+  // Семейная сборка: зашитая ссылка подписки (--dart-define subscription_url=...)
+  static const subscriptionUrl = String.fromEnvironment("subscription_url");
 }
 
 enum Release {

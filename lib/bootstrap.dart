@@ -18,6 +18,10 @@ import 'package:hiddify/features/app/widget/app.dart';
 import 'package:hiddify/features/auto_start/notifier/auto_start_notifier.dart';
 import 'package:hiddify/features/chain/model/chain_enum.dart';
 import 'package:hiddify/features/chain/notifier/chain_profile_notifier.dart';
+import 'package:hiddify/features/family/family_profile.dart';
+import 'package:hiddify/core/model/region.dart';
+import 'package:hiddify/core/localization/locale_preferences.dart';
+import 'package:hiddify/features/settings/data/config_option_repository.dart';
 
 import 'package:hiddify/features/log/data/log_data_providers.dart';
 import 'package:hiddify/features/profile/data/profile_data_providers.dart';
@@ -85,6 +89,22 @@ Future<void> lazyBootstrap(WidgetsBinding widgetsBinding, Environment env) async
   Logger.bootstrap.info(appInfo.format());
 
   await _init("profile repository", () => container.read(profileRepositoryProvider.future));
+
+  // Семейная сборка: без интро, регион RU (российские сайты напрямую), русский язык,
+  // зашитая подписка подтягивается сама. Не блокируем старт дольше 8 секунд.
+  if (!container.read(Preferences.introCompleted)) {
+    await _safeInit("family defaults", () async {
+      await container.read(ConfigOptions.region.notifier).update(Region.ru);
+      await container.read(ConfigOptions.directDnsAddress.notifier).reset();
+      await container.read(localePreferencesProvider.notifier).changeLocale(AppLocale.ru);
+      await container.read(Preferences.introCompleted.notifier).update(true);
+    });
+  }
+  await _safeInit(
+    "family profile",
+    () => ensureFamilyProfile(container.read(profileRepositoryProvider).requireValue),
+    timeout: 8000,
+  );
 
   await _init("translations", () => container.read(translationsProvider.future));
 

@@ -1,6 +1,6 @@
 {
   "common": {
-    "appTitle": "Hiddify",
+    "appTitle": "Окно",
     "start": "Начать",
     "version": "Версия",
     "ok": "OK",
@@ -683,12 +683,12 @@
     }
   },
   "connection": {
-    "tapToConnect": "Нажмите для подключения",
-    "connect": "Подключить",
-    "connecting": "Подключение...",
-    "connected": "Подключено",
-    "disconnect": "Отключить",
-    "disconnecting": "Отключение...",
+    "tapToConnect": "Нажмите, чтобы включить",
+    "connect": "Включить",
+    "connecting": "Включаем…",
+    "connected": "Включено",
+    "disconnect": "Выключить",
+    "disconnecting": "Выключаем…",
     "reconnect": "Переподключить",
     "reconnectMsg": "Переподключение для учета изменений..."
   },
