@@ -45,11 +45,14 @@ workflows:
         script: |
           set -e
           BUILD_NUMBER=$(($(date +%s) % 100000000))
-          # use-profiles ДОЛЖЕН идти прямо перед сборкой: flutter build ipa обновляет pbxproj и сбрасывает подпись
+          # 1) собрать без подписи — dart-define пишутся в Generated.xcconfig (DART_DEFINES)
+          flutter build ios --release --no-codesign --target lib/main_prod.dart \
+            --build-number "$BUILD_NUMBER" \
+            --dart-define sentry_dsn= --dart-define subscription_url="$SUBSCRIPTION_URL"
+          # 2) ручная подпись фетч-профилями (flutter build ipa игнорирует их и уходит в автоподпись)
           xcode-project use-profiles
-          flutter build ipa --release --target lib/main_prod.dart --build-number "$BUILD_NUMBER" \
-            --dart-define sentry_dsn= --dart-define subscription_url="$SUBSCRIPTION_URL" \
-            --export-options-plist "$HOME/export_options.plist"
+          # 3) архив+экспорт через Codemagic CLI, а не flutter — уважает manual signing
+          xcode-project build-ipa --workspace ios/Runner.xcworkspace --scheme Runner
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
