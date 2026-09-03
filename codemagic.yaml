@@ -56,3 +56,60 @@ workflows:
       app_store_connect:
         auth: integrations
         submit_to_testflight: true
+
+  macos-notarize:
+    name: macOS — подпись Developer ID + нотаризация
+    instance_type: mac_mini_m2
+    max_build_duration: 90
+    integrations:
+      app_store_connect: app_store_connect_artem
+    environment:
+      groups: [asc_signing, macos_devid, okno]
+      vars:
+        BUNDLE_ID: app.okno.family
+      flutter: 3.38.5
+      xcode: latest
+    scripts:
+      - name: Prepare
+        script: |
+          set -e
+          flutter pub get
+          dart run build_runner build --delete-conflicting-outputs
+          dart run slang
+      - name: Fetch hiddify-core macOS framework
+        script: |
+          set -e
+          CORE_VERSION=$(grep core.version dependencies.properties | cut -d= -f2)
+          mkdir -p macos/Frameworks && curl -fL "https://github.com/hiddify/hiddify-core/releases/download/v${CORE_VERSION}/hiddify-lib-macos.tar.gz" | tar xz -C macos/Frameworks
+      - name: Import Developer ID certificate
+        script: |
+          set -e
+          keychain initialize
+          echo "$MACOS_DEVID_CERT_P12" | base64 --decode > /tmp/devid.p12
+          keychain add-certificates --certificate /tmp/devid.p12 --certificate-password "$MACOS_DEVID_CERT_PASSWORD"
+      - name: Build & sign macOS app
+        script: |
+          set -e
+          flutter build macos --release --target lib/main_prod.dart \
+            --dart-define sentry_dsn= --dart-define subscription_url="$SUBSCRIPTION_URL"
+          APP=$(find build/macos/Build/Products/Release -maxdepth 1 -name "*.app" | head -1)
+          codesign --force --deep --options runtime --timestamp \
+            --sign "Developer ID Application" "$APP"
+      - name: Make DMG, notarize & staple
+        script: |
+          set -e
+          APP=$(find build/macos/Build/Products/Release -maxdepth 1 -name "*.app" | head -1)
+          npm install -g appdmg || true
+          mkdir -p out
+          hdiutil create -volname Okno -srcfolder "$APP" -ov -format UDZO out/Okno-macOS.dmg
+          app-store-connect notarize out/Okno-macOS.dmg \
+            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
+            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            --private-key "@env:APP_STORE_CONNECT_PRIVATE_KEY"
+          xcrun stapler staple out/Okno-macOS.dmg
+    artifacts:
+      - out/*.dmg
+    publishing:
+      scripts:
+        - name: done
+          script: echo "Notarized DMG in artifacts"
