@@ -24,6 +24,7 @@ env:
   HAS_WINDOWS_KEY: "${{ secrets.WINDOWS_SIGNING_KEY != '' }}"
   HAS_APPLE_CERT: "${{ secrets.APPLE_CERTIFICATE_P12 != '' }}"
   HAS_PLAY_JSON: "${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != '' }}"
+  HAS_SENTRY: "${{ secrets.SENTRY_AUTH_TOKEN != '' }}"
   TARGET_NAME_gz: "Okno-Linux-x64-AppImage.tar"
   TARGET_NAME_AppImage: "Okno-Linux-x64-AppImage"
   TARGET_NAME_deb: "Okno-Debian-x64"
@@ -292,7 +293,7 @@ jobs:
           Get-ChildItem -Path out
           
       - name: Upload Debug Symbols
-        if: ${{ inputs.upload-artifact && inputs.tag-name != 'draft' }}
+        if: ${{ inputs.upload-artifact && inputs.tag-name != 'draft' && env.HAS_SENTRY == 'true' }}
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
