@@ -127,6 +127,13 @@ class GeneralPage extends HookConsumerWidget {
             inputToValue: int.tryParse,
           ),
           SwitchListTile.adaptive(
+            title: const Text("Значки вместо окна"),
+            subtitle: const Text("Галочка, крест и знак вместо логотипа-окна"),
+            secondary: const Icon(Icons.check_circle_outline_rounded),
+            value: ref.watch(ConfigOptions.buttonShowStatusIcons),
+            onChanged: ref.read(ConfigOptions.buttonShowStatusIcons.notifier).update,
+          ),
+          SwitchListTile.adaptive(
             title: Text(t.pages.settings.general.useXrayCoreWhenPossible),
             subtitle: Text(t.pages.settings.general.useXrayCoreWhenPossibleMsg),
             secondary: const Icon(Icons.extension_rounded),

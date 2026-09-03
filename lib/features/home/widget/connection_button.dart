@@ -35,6 +35,7 @@ class ConnectionButton extends HookConsumerWidget {
     final delay = activeProxy.valueOrNull?.urlTestDelay ?? 0;
 
     final requiresReconnect = ref.watch(configOptionNotifierProvider).valueOrNull;
+    final showStatusIcons = ref.watch(ConfigOptions.buttonShowStatusIcons);
     final today = DateTime.now();
     // final animationController = useAnimationController(
     //   duration: const Duration(seconds: 1),
@@ -171,6 +172,7 @@ class ConnectionButton extends HookConsumerWidget {
         AsyncData(value: Disconnected()) || AsyncError() => Icons.close_rounded,
         _ => Icons.more_horiz_rounded,
       },
+      showStatusIcons: showStatusIcons,
       image: Assets.images.disconnectNorouz,
       newButtonColor: kOknoConnected,
       animated: switch (connectionStatus) {
@@ -198,6 +200,7 @@ class _ConnectionButton extends StatelessWidget {
     required this.animated,
     required this.secureLabel,
     required this.statusIcon,
+    required this.showStatusIcons,
   });
 
   final VoidCallback onTap;
@@ -210,6 +213,7 @@ class _ConnectionButton extends StatelessWidget {
 
   final Color newButtonColor;
   final IconData statusIcon;
+  final bool showStatusIcons;
 
   final bool animated;
 
@@ -244,7 +248,10 @@ class _ConnectionButton extends StatelessWidget {
                     tween: ColorTween(end: buttonColor),
                     duration: const Duration(milliseconds: 250),
                     builder: (context, value, child) {
-                      return Icon(statusIcon, color: value, size: 76);
+                      if (showStatusIcons) {
+                        return Icon(statusIcon, color: value, size: 76);
+                      }
+                      return Assets.images.logo.svg(colorFilter: ColorFilter.mode(value!, BlendMode.srcIn));
                     },
                   ),
                 ),

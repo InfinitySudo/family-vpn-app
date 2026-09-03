@@ -38,6 +38,8 @@ abstract class ConfigOptions {
     mapTo: (value) => value.name,
   );
   static final useXrayCoreWhenPossible = PreferencesNotifier.create<bool, bool>("use-xray-core-when-possible", true); // Окно: сервер на Xray 26 Reality, sing-box его не верифицирует
+  // Окно: стиль кнопки — false = окно (по умолчанию), true = галочка/крест/знак
+  static final buttonShowStatusIcons = PreferencesNotifier.create<bool, bool>("button-status-icons", false);
   // static final blockAds = PreferencesNotifier.create<bool, bool>("block-ads", false);
   static final logLevel = PreferencesNotifier.create<LogLevel, String>(
     "log-level",
