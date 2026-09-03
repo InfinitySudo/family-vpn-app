@@ -57,6 +57,12 @@ class SettingsPage extends HookConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        // Окно: явная кнопка «домой» — нижнего меню в семейной сборке нет
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: t.pages.home.title,
+          onPressed: () => context.go("/home"),
+        ),
         title: Text(t.pages.settings.title),
         actions: [
           MenuAnchor(
