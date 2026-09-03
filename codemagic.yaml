@@ -1,0 +1,58 @@
+# Сборка iOS «Окно» → TestFlight на Codemagic (GitHub Actions без macOS-подписи не тянет).
+# Секреты: группа asc_signing (ASC API key + CERTIFICATE_PRIVATE_KEY), группа okno (SUBSCRIPTION_URL).
+workflows:
+  ios-testflight:
+    name: iOS — Окно → TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 90
+    integrations:
+      app_store_connect: app_store_connect_artem
+    environment:
+      groups: [asc_signing, okno]
+      vars:
+        BUNDLE_ID: app.okno.family
+        TUNNEL_BUNDLE_ID: app.okno.family.HiddifyPacketTunnel
+      flutter: 3.38.5
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Prepare (pub get, codegen, translations)
+        script: |
+          set -e
+          flutter pub get
+          dart run build_runner build --delete-conflicting-outputs
+          dart run slang
+      - name: Fetch hiddify-core iOS framework
+        script: |
+          set -e
+          CORE_VERSION=$(grep core.version dependencies.properties | cut -d= -f2)
+          mkdir -p ios/Frameworks && rm -rf ios/Frameworks/HiddifyCore.xcframework
+          curl -fL "https://github.com/hiddify/hiddify-core/releases/download/v${CORE_VERSION}/hiddify-lib-ios.tar.gz" | tar xz -C ios/Frameworks
+          ls -la ios/Frameworks
+      - name: Pod install
+        script: cd ios && pod install --repo-update
+      - name: Fetch signing files (app + packet tunnel)
+        script: |
+          set -e
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE \
+            --certificate-key "@env:CERTIFICATE_PRIVATE_KEY" --create
+          app-store-connect fetch-signing-files "$TUNNEL_BUNDLE_ID" --type IOS_APP_STORE \
+            --certificate-key "@env:CERTIFICATE_PRIVATE_KEY" --create
+          keychain add-certificates
+          xcode-project use-profiles
+          ls -la "$HOME/Library/MobileDevice/Provisioning Profiles/" || true
+      - name: Build IPA
+        script: |
+          set -e
+          BUILD_NUMBER=$(($(date +%s) % 100000000))
+          flutter build ipa --release --target lib/main_prod.dart --build-number "$BUILD_NUMBER" \
+            --dart-define sentry_dsn= --dart-define subscription_url="$SUBSCRIPTION_URL" \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integrations
+        submit_to_testflight: true
