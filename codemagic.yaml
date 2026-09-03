@@ -40,15 +40,16 @@ workflows:
           app-store-connect fetch-signing-files "$TUNNEL_BUNDLE_ID" --type IOS_APP_STORE \
             --certificate-key "@env:CERTIFICATE_PRIVATE_KEY" --create
           keychain add-certificates
-          xcode-project use-profiles
           ls -la "$HOME/Library/MobileDevice/Provisioning Profiles/" || true
       - name: Build IPA
         script: |
           set -e
           BUILD_NUMBER=$(($(date +%s) % 100000000))
+          # use-profiles ДОЛЖЕН идти прямо перед сборкой: flutter build ipa обновляет pbxproj и сбрасывает подпись
+          xcode-project use-profiles
           flutter build ipa --release --target lib/main_prod.dart --build-number "$BUILD_NUMBER" \
             --dart-define sentry_dsn= --dart-define subscription_url="$SUBSCRIPTION_URL" \
-            --export-options-plist=/Users/builder/export_options.plist
+            --export-options-plist "$HOME/export_options.plist"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
