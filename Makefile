@@ -272,7 +272,7 @@ android-apk-release:
 	  --skip-clean \
 	  --build-target=$(TARGET) \
 	  --build-target-platform=android-arm,android-arm64,android-x64 \
-	  --build-dart-define=sentry_dsn=$(SENTRY_DSN)
+	  --build-dart-define=sentry_dsn=$(SENTRY_DSN) --build-dart-define=subscription_url=$(SUBSCRIPTION_URL)
 	ls -R build/app/outputs
 
 android-aab-release:
@@ -281,10 +281,11 @@ android-aab-release:
 	  --targets aab \
 	  --skip-clean \
 	  --build-target=$(TARGET) \
-	  --build-dart-define=sentry_dsn=$(SENTRY_DSN) \
+	  --build-dart-define=sentry_dsn=$(SENTRY_DSN) --build-dart-define=subscription_url=$(SUBSCRIPTION_URL) \
 	  --build-dart-define=release=google-play
 
-windows-release: windows-zip-release windows-exe-release windows-msix-release
+# MSIX требует сертификат подписи — семейной сборке не нужен
+windows-release: windows-zip-release windows-exe-release
 
 windows-zip-release:
 	fastforge package \
@@ -292,7 +293,7 @@ windows-zip-release:
 	  --targets zip \
 	  --skip-clean \
 	  --build-target=$(TARGET) \
-	  --build-dart-define=sentry_dsn=$(SENTRY_DSN) \
+	  --build-dart-define=sentry_dsn=$(SENTRY_DSN) --build-dart-define=subscription_url=$(SUBSCRIPTION_URL) \
 	  --build-dart-define=portable=true
 	@FULL_PATH=$$(ls dist/*/*.zip | head -n 1); \
 	ZIP_DIR=$$(dirname "$$FULL_PATH"); \
@@ -301,11 +302,11 @@ windows-zip-release:
 	$(YELLOW)Post-processing Windows portable$(DONE); \
 	cd "$$ZIP_DIR"; \
 	$(BLUE)Extracting and Repacking...$(DONE); \
-	mkdir -p Hiddify; \
-	unzip -q "$$ZIP_FILE" -d Hiddify/; \
+	mkdir -p Okno; \
+	unzip -q "$$ZIP_FILE" -d Okno/; \
 	rm "$$ZIP_FILE"; \
-	tar -a -cf "$$FILE_NAME.zip" Hiddify; \
-	rm -rf Hiddify; \
+	tar -a -cf "$$FILE_NAME.zip" Okno; \
+	rm -rf Okno; \
 	$(GREEN)Successful$(DONE)
 
 windows-exe-release:
@@ -314,7 +315,7 @@ windows-exe-release:
 	  --targets exe \
 	  --skip-clean \
 	  --build-target=$(TARGET) \
-	  --build-dart-define=sentry_dsn=$(SENTRY_DSN)
+	  --build-dart-define=sentry_dsn=$(SENTRY_DSN) --build-dart-define=subscription_url=$(SUBSCRIPTION_URL)
 
 windows-msix-release:
 	fastforge package \
@@ -322,7 +323,7 @@ windows-msix-release:
 	  --targets msix \
 	  --skip-clean \
 	  --build-target=$(TARGET) \
-	  --build-dart-define=sentry_dsn=$(SENTRY_DSN)
+	  --build-dart-define=sentry_dsn=$(SENTRY_DSN) --build-dart-define=subscription_url=$(SUBSCRIPTION_URL)
 
 linux-release: linux-deb-release linux-appimage-release
 
@@ -338,7 +339,7 @@ linux-deb-release:
 	--targets deb \
 	--skip-clean \
 	--build-target=$(TARGET) \
-	--build-dart-define=sentry_dsn=$(SENTRY_DSN)
+	--build-dart-define=sentry_dsn=$(SENTRY_DSN) --build-dart-define=subscription_url=$(SUBSCRIPTION_URL)
 
 
 # ==============================================================================
@@ -376,7 +377,7 @@ linux-appimage-release:
 	--targets appimage \
 	--skip-clean \
 	--build-target=$(TARGET) \
-	--build-dart-define=sentry_dsn=$(SENTRY_DSN)
+	--build-dart-define=sentry_dsn=$(SENTRY_DSN) --build-dart-define=subscription_url=$(SUBSCRIPTION_URL)
 	@$(YELLOW)Post-processing AppImage$(DONE); \
 	$(BLUE)Extracting AppImage$(DONE); \
 	cd dist/* && ./*.AppImage --appimage-extract > /dev/null; \

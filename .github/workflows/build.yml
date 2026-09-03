@@ -81,7 +81,7 @@ jobs:
           - platform: windows
             os: windows-latest
             aarch: amd64
-            targets: exe,msix,zip
+            targets: exe,zip
 
           - platform: linux
             os: ubuntu-22.04
