@@ -19,7 +19,11 @@ import 'package:hiddify/gen/assets.gen.dart';
 import 'package:hiddify/singbox/model/singbox_config_enum.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-// TODO: rewrite
+// Окно: статусные цвета кнопки
+const Color kOknoConnected = Color(0xFF5CD65C); // салатовая — подключено
+const Color kOknoDisconnected = Color(0xFFE5484D); // красная — выключено
+const Color kOknoAttention = Color(0xFFFF9800); // оранжевая — подключение/внимание
+
 class ConnectionButton extends HookConsumerWidget {
   const ConnectionButton({super.key});
 
@@ -61,8 +65,6 @@ class ConnectionButton extends HookConsumerWidget {
     //   //     }
     //   //   },
     //   // );
-
-    const buttonTheme = ConnectionButtonTheme.light;
 
     //   // return CircleDesignWidget(
     //   //   onTap: switch (connectionStatus) {
@@ -152,29 +154,25 @@ class ConnectionButton extends HookConsumerWidget {
         AsyncData(value: final status) => status.present(t),
         _ => "",
       },
+      // Окно: цвет по статусу — салатовая (вкл), красная (выкл), оранжевая (в процессе/внимание)
       buttonColor: switch (connectionStatus) {
-        AsyncData(value: Connected()) when requiresReconnect == true => Colors.teal,
-        AsyncData(value: Connected()) when delay <= 0 || delay >= 65000 => const Color.fromARGB(255, 185, 176, 103),
-        AsyncData(value: Connected()) => buttonTheme.connectedColor!,
-        AsyncData(value: _) => buttonTheme.idleColor!,
-        _ => Colors.red,
+        AsyncData(value: Connected()) when requiresReconnect == true => kOknoAttention,
+        AsyncData(value: Connected()) when delay <= 0 || delay >= 65000 => kOknoAttention,
+        AsyncData(value: Connected()) => kOknoConnected,
+        AsyncData(value: Connecting()) || AsyncData(value: Disconnecting()) => kOknoAttention,
+        AsyncData(value: Disconnected()) || AsyncError() => kOknoDisconnected,
+        _ => kOknoAttention,
       },
-      image: switch (connectionStatus) {
-        AsyncData(value: Connected()) when requiresReconnect == true => Assets.images.disconnectNorouz,
-        AsyncData(value: Connected()) => Assets.images.connectNorouz,
-        AsyncData(value: _) => Assets.images.disconnectNorouz,
-        _ => Assets.images.disconnectNorouz,
-        AsyncData(value: Disconnected()) || AsyncError() => Assets.images.disconnectNorouz,
-        AsyncData(value: Connected()) => Assets.images.connectNorouz,
-        _ => Assets.images.disconnectNorouz,
+      statusIcon: switch (connectionStatus) {
+        AsyncData(value: Connected()) when requiresReconnect == true => Icons.error_rounded,
+        AsyncData(value: Connected()) when delay <= 0 || delay >= 65000 => Icons.error_rounded,
+        AsyncData(value: Connected()) => Icons.check_rounded,
+        AsyncData(value: Connecting()) || AsyncData(value: Disconnecting()) => Icons.more_horiz_rounded,
+        AsyncData(value: Disconnected()) || AsyncError() => Icons.close_rounded,
+        _ => Icons.more_horiz_rounded,
       },
-      newButtonColor: switch (connectionStatus) {
-        AsyncData(value: Connected()) when requiresReconnect == true => Colors.teal,
-        AsyncData(value: Connected()) when delay <= 0 || delay >= 65000 => const Color.fromARGB(255, 185, 176, 103),
-        AsyncData(value: Connected()) => buttonTheme.connectedColor!,
-        AsyncData(value: _) => buttonTheme.idleColor!,
-        _ => Colors.red,
-      },
+      image: Assets.images.disconnectNorouz,
+      newButtonColor: kOknoConnected,
       animated: switch (connectionStatus) {
         AsyncData(value: Connected()) when requiresReconnect == true => false,
         AsyncData(value: Connected()) when delay <= 0 || delay >= 65000 => false,
@@ -199,6 +197,7 @@ class _ConnectionButton extends StatelessWidget {
     required this.newButtonColor,
     required this.animated,
     required this.secureLabel,
+    required this.statusIcon,
   });
 
   final VoidCallback onTap;
@@ -210,6 +209,7 @@ class _ConnectionButton extends StatelessWidget {
   final String secureLabel;
 
   final Color newButtonColor;
+  final IconData statusIcon;
 
   final bool animated;
 
@@ -244,11 +244,7 @@ class _ConnectionButton extends StatelessWidget {
                     tween: ColorTween(end: buttonColor),
                     duration: const Duration(milliseconds: 250),
                     builder: (context, value, child) {
-                      if (useImage) {
-                        return image.image();
-                      } else {
-                        return Assets.images.logo.svg(colorFilter: ColorFilter.mode(value!, BlendMode.srcIn));
-                      }
+                      return Icon(statusIcon, color: value, size: 76);
                     },
                   ),
                 ),
