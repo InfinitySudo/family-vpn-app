@@ -2,7 +2,7 @@
 
 | Устройство | Файл |
 |---|---|
-| Android (телефон, планшет) | `Okno-Android-universal.apk` |
+| Android (телефон, планшет) | `Okno-Android-arm64.apk` (старые устройства: `Okno-Android-arm7.apk`) |
 | Windows | `Okno-Windows-Setup-x64.exe` |
 | macOS | `Okno-MacOS.dmg` |
 | iPhone / iPad | через TestFlight (ссылка отдельно) |
