@@ -112,8 +112,19 @@ workflows:
           flutter build macos --release --target lib/main_prod.dart \
             --dart-define sentry_dsn= --dart-define subscription_url="$SUBSCRIPTION_URL"
           APP=$(find build/macos/Build/Products/Release -maxdepth 1 -name "*.app" | head -1)
-          codesign --force --deep --options runtime --timestamp \
-            --sign "Developer ID Application" "$APP"
+          ENT="$CM_BUILD_DIR/macos/Runner/Release.entitlements"
+          IDENT="Developer ID Application"
+          # 1) подписать все вложенные dylib/framework/helper ПЕРВЫМИ (жёсткий рантайм + те же entitlements для Go-ядра)
+          find "$APP" \( -name "*.dylib" -o -name "*.so" \) -print0 | while IFS= read -r -d "" f; do
+            codesign --force --options runtime --timestamp --entitlements "$ENT" --sign "$IDENT" "$f"
+          done
+          find "$APP/Contents/Frameworks" -maxdepth 1 -name "*.framework" -print0 2>/dev/null | while IFS= read -r -d "" fw; do
+            codesign --force --options runtime --timestamp --sign "$IDENT" "$fw"
+          done
+          # 2) подписать само приложение С entitlements (иначе allow-jit/unsigned-mem/disable-lib-validation срезаются)
+          codesign --force --options runtime --timestamp --entitlements "$ENT" --sign "$IDENT" "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          codesign -d --entitlements :- "$APP" | grep -i "library-validation\|executable-memory" || true
       - name: Make DMG, notarize & staple
         script: |
           set -e
