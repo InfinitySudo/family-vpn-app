@@ -13,7 +13,7 @@ workflows:
         BUNDLE_ID: app.okno.family
         TUNNEL_BUNDLE_ID: app.okno.family.HiddifyPacketTunnel
       flutter: 3.38.5
-      xcode: latest
+      xcode: 16.4
       cocoapods: default
     scripts:
       - name: Prepare (pub get, codegen, translations)
@@ -47,8 +47,9 @@ workflows:
           # закрепить ручной стиль после flutter (он мог обновить pbxproj)
           sed -i "" "s/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g; s/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g" ios/Runner.xcodeproj/project.pbxproj || true
           xcode-project use-profiles
-          echo "=== установленные профили ==="
-          ls -la "$HOME/Library/MobileDevice/Provisioning Profiles/" || true
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/"*.mobileprovision "$HOME/Library/MobileDevice/Provisioning Profiles/" 2>/dev/null || true
+          echo "=== профили ==="; ls "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/" || true
           xcode-project build-ipa --workspace ios/Runner.xcworkspace --scheme Runner
     artifacts:
       - build/ios/ipa/*.ipa
