@@ -106,6 +106,16 @@ Future<void> lazyBootstrap(WidgetsBinding widgetsBinding, Environment env) async
       await container.read(Preferences.introCompleted.notifier).update(true);
     });
   }
+  // Всегда включаем TLS-фрагментацию (не только для новых установок):
+  // (1) чинит ошибку старта "detour to an empty direct outbound makes no sense" —
+  //     сервисы dns-remote-no-warp/dns-trick-direct детурят в direct-fragment, и с
+  //     выключенным фрагментом это «пустой direct», который строгое ядро отвергает;
+  // (2) фрагментация TLS — анти-DPI, полезно в РФ. Reality-outbound это не затрагивает.
+  await _safeInit(
+    "family tls fragment",
+    () => container.read(ConfigOptions.enableTlsFragment.notifier).update(true),
+  );
+
   await _safeInit(
     "family profile",
     () => ensureFamilyProfile(container.read(profileRepositoryProvider).requireValue),
