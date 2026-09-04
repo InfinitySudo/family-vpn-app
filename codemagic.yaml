@@ -101,14 +101,17 @@ workflows:
         script: |
           set -e
           keychain initialize
+          KC="$HOME/Library/codemagic-cli-tools/keychains/$(ls -t $HOME/Library/codemagic-cli-tools/keychains | head -1)"
+          echo "keychain: $KC"
           echo "$MACOS_DEVID_CERT_P12_B64" | base64 --decode > /tmp/devid.p12
           keychain add-certificates --certificate /tmp/devid.p12 --certificate-password "$MACOS_DEVID_CERT_PASSWORD"
-          # промежуточные и корневой сертификаты Apple — иначе цепочка Developer ID не строится
-          curl -fsSL https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer -o /tmp/DeveloperIDG2CA.cer
-          curl -fsSL https://www.apple.com/appleca/AppleIncRootCertificate.cer -o /tmp/AppleRoot.cer
-          curl -fsSL https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer -o /tmp/WWDRG3.cer || true
-          keychain add-certificates --certificate /tmp/DeveloperIDG2CA.cer --certificate /tmp/AppleRoot.cer --certificate /tmp/WWDRG3.cer || {
-            for c in /tmp/DeveloperIDG2CA.cer /tmp/AppleRoot.cer /tmp/WWDRG3.cer; do keychain add-certificates --certificate "$c" || true; done; }
+          # промежуточные+корень Apple: DER -> PEM и импорт в ту же связку (иначе цепочка не строится -> errSecInternalComponent)
+          curl -fsSL https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer -o /tmp/g2.cer
+          curl -fsSL https://www.apple.com/appleca/AppleIncRootCertificate.cer -o /tmp/root.cer
+          for c in g2 root; do openssl x509 -inform DER -in /tmp/$c.cer -out /tmp/$c.pem; security import /tmp/$c.pem -k "$KC" -T /usr/bin/codesign || true; done
+          # разрешить codesign использовать приватный ключ без запроса пароля
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" "$KC" || true
+          security find-identity -v -p codesigning "$KC"
       - name: Build & sign macOS app
         script: |
           set -e
