@@ -119,7 +119,8 @@ Future<void> lazyBootstrap(WidgetsBinding widgetsBinding, Environment env) async
   await _safeInit(
     "family profile",
     () => ensureFamilyProfile(container.read(profileRepositoryProvider).requireValue),
-    timeout: 8000,
+    // перебор адресов подписки: заблокированный IP висит до 5 с, затем зеркала
+    timeout: 12000,
   );
 
   await _init("translations", () => container.read(translationsProvider.future));
