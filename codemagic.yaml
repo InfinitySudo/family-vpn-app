@@ -41,19 +41,45 @@ workflows:
             --certificate-key "@env:CERTIFICATE_PRIVATE_KEY" --create
           keychain add-certificates
           ls -la "$HOME/Library/MobileDevice/Provisioning Profiles/" || true
-      - name: Build IPA
+      - name: Build IPA (автоподпись Xcode с ключом ASC)
         script: |
           set -e
           BUILD_NUMBER=$(($(date +%s) % 100000000))
-          # 1) собрать без подписи — dart-define пишутся в Generated.xcconfig (DART_DEFINES)
+          # 1) сборка без подписи — dart-define попадают в Generated.xcconfig
           flutter build ios --release --no-codesign --target lib/main_prod.dart \
             --build-number "$BUILD_NUMBER" \
             --dart-define sentry_dsn= --dart-define subscription_url="$SUBSCRIPTION_URL"
-          # 2) ручная подпись фетч-профилями (flutter build ipa игнорирует их и уходит в автоподпись)
-          xcode-project use-profiles
-          # 3) архив+экспорт через Codemagic CLI, а не flutter — уважает manual signing
-          xcode-project build-ipa --workspace ios/Runner.xcworkspace --scheme Runner
+          # 2) ключ ASC на диск для -allowProvisioningUpdates
+          mkdir -p ~/private_keys
+          printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" > ~/private_keys/AuthKey_$APP_STORE_CONNECT_KEY_IDENTIFIER.p8
+          # 3) архив: Xcode сам создаёт управляемый профиль со всеми возможностями (App Groups, Network Extension)
+          xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release \
+            -archivePath $CM_BUILD_DIR/Runner.xcarchive archive \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_$APP_STORE_CONNECT_KEY_IDENTIFIER.p8 \
+            -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" \
+            DEVELOPMENT_TEAM=K7BZZQL253 CODE_SIGN_STYLE=Automatic COMPILER_INDEX_STORE_ENABLE=NO
+          # 4) экспорт в ipa (метод app-store)
+          cat > /tmp/export_options.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+          <key>method</key><string>app-store</string>
+          <key>teamID</key><string>K7BZZQL253</string>
+          <key>signingStyle</key><string>automatic</string>
+          <key>uploadSymbols</key><true/>
+          <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive -archivePath $CM_BUILD_DIR/Runner.xcarchive \
+            -exportPath $CM_BUILD_DIR/ipa -exportOptionsPlist /tmp/export_options.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_$APP_STORE_CONNECT_KEY_IDENTIFIER.p8 \
+            -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
     artifacts:
+      - $CM_BUILD_DIR/ipa/*.ipa
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
     publishing:
