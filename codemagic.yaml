@@ -96,8 +96,7 @@ workflows:
       - name: Fetch hiddify-core macOS framework
         script: |
           set -e
-          CORE_VERSION=$(grep core.version dependencies.properties | cut -d= -f2)
-          mkdir -p macos/Frameworks && curl -fL "https://github.com/hiddify/hiddify-core/releases/download/v${CORE_VERSION}/hiddify-lib-macos.tar.gz" | tar xz -C macos/Frameworks
+          make macos-libs
       - name: Import Developer ID certificate
         script: |
           set -e
