@@ -90,7 +90,10 @@ workflows:
       - name: Fetch hiddify-core macOS framework
         script: |
           set -e
-          make macos-libs
+          # Пин СТАБИЛЬНОГО ядра v4.1.0 для macOS: draft-бинарь ядра генерил битый DNS
+          # (dns-remote-no-warp -> пустой direct), из-за чего подключение падало
+          # "detour to an empty direct outbound". iOS остаётся на draft (там работает).
+          make macos-libs CHANNEL=prod core.version=4.1.0
       - name: Import Developer ID certificate
         script: |
           set -e
