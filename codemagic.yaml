@@ -51,14 +51,14 @@ workflows:
             --dart-define sentry_dsn= --dart-define subscription_url="$SUBSCRIPTION_URL"
           # 2) ключ ASC на диск для -allowProvisioningUpdates
           mkdir -p ~/private_keys
-          echo "$APP_STORE_CONNECT_PRIVATE_KEY_B64" | base64 --decode > ~/private_keys/AuthKey_$APP_STORE_CONNECT_KEY_IDENTIFIER.p8
+          echo "$APP_STORE_CONNECT_PRIVATE_KEY_B64" | base64 --decode > ~/private_keys/AuthKey_32D5G8Z738.p8
           # 3) архив: Xcode сам создаёт управляемый профиль со всеми возможностями (App Groups, Network Extension)
           xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release \
             -archivePath $CM_BUILD_DIR/Runner.xcarchive archive \
             -allowProvisioningUpdates \
-            -authenticationKeyPath ~/private_keys/AuthKey_$APP_STORE_CONNECT_KEY_IDENTIFIER.p8 \
-            -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" \
+            -authenticationKeyPath ~/private_keys/AuthKey_32D5G8Z738.p8 \
+            -authenticationKeyID 32D5G8Z738 \
+            -authenticationKeyIssuerID 29530fc3-b27b-45ae-8736-b014342b4844 \
             DEVELOPMENT_TEAM=K7BZZQL253 CODE_SIGN_STYLE=Automatic COMPILER_INDEX_STORE_ENABLE=NO
           # 4) экспорт в ipa (метод app-store)
           cat > /tmp/export_options.plist <<PLIST
@@ -75,9 +75,9 @@ workflows:
           xcodebuild -exportArchive -archivePath $CM_BUILD_DIR/Runner.xcarchive \
             -exportPath $CM_BUILD_DIR/ipa -exportOptionsPlist /tmp/export_options.plist \
             -allowProvisioningUpdates \
-            -authenticationKeyPath ~/private_keys/AuthKey_$APP_STORE_CONNECT_KEY_IDENTIFIER.p8 \
-            -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
+            -authenticationKeyPath ~/private_keys/AuthKey_32D5G8Z738.p8 \
+            -authenticationKeyID 32D5G8Z738 \
+            -authenticationKeyIssuerID 29530fc3-b27b-45ae-8736-b014342b4844
     artifacts:
       - $CM_BUILD_DIR/ipa/*.ipa
       - build/ios/ipa/*.ipa
