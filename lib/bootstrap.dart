@@ -90,6 +90,12 @@ Future<void> lazyBootstrap(WidgetsBinding widgetsBinding, Environment env) async
 
   await _init("profile repository", () => container.read(profileRepositoryProvider.future));
 
+  // Ядро поднимаем ДО создания семейного профиля: ensureFamilyProfile → upsertRemote →
+  // validateConfig → changeOptions обращается к ядру. Если ядро ещё не инициализировано,
+  // changeOptions падает с gRPC-ошибкой, парс подписки не выполняется и файл конфига
+  // профиля (configs/<id>.json) не создаётся → при подключении «no such file».
+  await _safeInit("hiddify-core", () => container.read(hiddifyCoreServiceProvider).init());
+
   // Семейная сборка: без интро, регион RU (российские сайты напрямую), русский язык,
   // зашитая подписка подтягивается сама. Не блокируем старт дольше 8 секунд.
   if (!container.read(Preferences.introCompleted)) {
@@ -117,8 +123,6 @@ Future<void> lazyBootstrap(WidgetsBinding widgetsBinding, Environment env) async
     "chain profile unblocker",
     () => container.read(chainProfileNotifierProvider(ChainType.unblocker).future),
   );
-  await _safeInit("hiddify-core", () => container.read(hiddifyCoreServiceProvider).init());
-
   // Eagerly listen to activeProxyNotifierProvider to force synchronous evaluation in microtasks,
   // avoiding lazy build-phase flushes and sibling dependency collisions on the Home page.
   container.listen(activeProxyNotifierProvider, (previous, next) {});

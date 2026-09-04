@@ -121,15 +121,25 @@ class HiddifyCoreService with InfraLogger {
           ChangeHiddifySettingsRequest(hiddifySettingsJson: jsonEncode(options.toJson())),
         );
         if (res.messageType != MessageType.EMPTY) return left("${res.messageType} ${res.message}");
+      } on GrpcError catch (e) {
+        if (e.code == StatusCode.unavailable) {
+          loggy.debug("foreground core is not started yet! $e");
+        } else {
+          rethrow;
+        }
+      }
+
+      // bg-ядро — best-effort: оно получит настройки при реальном старту туннеля.
+      // Любая ошибка здесь НЕ должна валить разбор конфига профиля (иначе не создаётся
+      // configs/<id>.json и подключение падает с «no such file»).
+      try {
         await core.bgClient.changeHiddifySettings(
           ChangeHiddifySettingsRequest(hiddifySettingsJson: jsonEncode(options.toJson())),
         );
       } on GrpcError catch (e) {
-        if (e.code == StatusCode.unavailable) {
-          loggy.debug("background core is not started yet! $e");
-        } else {
-          rethrow;
-        }
+        loggy.debug("background core changeHiddifySettings skipped: $e");
+      } catch (e) {
+        loggy.debug("background core changeHiddifySettings skipped: $e");
       }
 
       return right(unit);
