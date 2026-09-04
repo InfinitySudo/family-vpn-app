@@ -45,13 +45,19 @@ workflows:
         script: |
           set -e
           BUILD_NUMBER=$(($(date +%s) % 100000000))
-          # сборка без подписи — dart-define в Generated.xcconfig
           flutter build ios --release --no-codesign --target lib/main_prod.dart \
             --build-number "$BUILD_NUMBER" \
             --dart-define sentry_dsn= --dart-define subscription_url="$SUBSCRIPTION_URL"
-          # ручная подпись фетч-профилями App Store (проект уже CODE_SIGN_STYLE=Manual)
+          # закрепить ручной стиль ПОСЛЕ flutter (он мог обновить pbxproj)
+          sed -i "" "s/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g; s/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g" ios/Runner.xcodeproj/project.pbxproj || true
+          # привязать профили App Store к целям + сгенерировать export_options
           xcode-project use-profiles
-          xcode-project build-ipa --workspace ios/Runner.xcworkspace --scheme Runner
+          # архив прямым xcodebuild БЕЗ глобальной перебивки подписи — берёт Manual+профили из проекта
+          xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release \
+            -archivePath $HOME/Runner.xcarchive archive COMPILER_INDEX_STORE_ENABLE=NO
+          mkdir -p build/ios/ipa
+          xcodebuild -exportArchive -archivePath $HOME/Runner.xcarchive \
+            -exportPath build/ios/ipa -exportOptionsPlist $HOME/export_options.plist
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
