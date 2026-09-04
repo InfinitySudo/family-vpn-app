@@ -13,7 +13,7 @@ workflows:
         BUNDLE_ID: app.okno.family
         TUNNEL_BUNDLE_ID: app.okno.family.HiddifyPacketTunnel
       flutter: 3.38.5
-      xcode: 16.4
+      xcode: latest
       cocoapods: default
     scripts:
       - name: Prepare (pub get, codegen, translations)
