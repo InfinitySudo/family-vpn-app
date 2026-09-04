@@ -98,7 +98,7 @@ workflows:
         script: |
           set -e
           keychain initialize
-          echo "$MACOS_DEVID_CERT_P12" | base64 --decode > /tmp/devid.p12
+          echo "$MACOS_DEVID_CERT_P12_B64" | base64 --decode > /tmp/devid.p12
           keychain add-certificates --certificate /tmp/devid.p12 --certificate-password "$MACOS_DEVID_CERT_PASSWORD"
       - name: Build & sign macOS app
         script: |
@@ -115,10 +115,11 @@ workflows:
           npm install -g appdmg || true
           mkdir -p out
           hdiutil create -volname Okno -srcfolder "$APP" -ov -format UDZO out/Okno-macOS.dmg
+          echo "$APP_STORE_CONNECT_PRIVATE_KEY_B64" | base64 --decode > /tmp/asc.p8
           app-store-connect notarize out/Okno-macOS.dmg \
-            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
-            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            --private-key "@env:APP_STORE_CONNECT_PRIVATE_KEY"
+            --issuer-id 29530fc3-b27b-45ae-8736-b014342b4844 \
+            --key-id 32D5G8Z738 \
+            --private-key @file:/tmp/asc.p8
           xcrun stapler staple out/Okno-macOS.dmg
     artifacts:
       - out/*.dmg
