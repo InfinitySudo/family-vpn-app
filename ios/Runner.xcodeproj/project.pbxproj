@@ -476,19 +476,19 @@
 					03E392B52ADDA00E000ADF15 = {
 						CreatedOnToolsVersion = 15.0;
 						DevelopmentTeamName = "Mark Pashmfouroush";
-						ProvisioningStyle = Automatic;
+						ProvisioningStyle = Manual;
 					};
 					331C8080294A63A400263BE5 = {
 						CreatedOnToolsVersion = 14.0;
 						DevelopmentTeamName = "Mark Pashmfouroush";
-						ProvisioningStyle = Automatic;
+						ProvisioningStyle = Manual;
 						TestTargetID = 97C146ED1CF9000F007C117D;
 					};
 					97C146ED1CF9000F007C117D = {
 						CreatedOnToolsVersion = 7.3.1;
 						DevelopmentTeamName = "Mark Pashmfouroush";
 						LastSwiftMigration = 1100;
-						ProvisioningStyle = Automatic;
+						ProvisioningStyle = Manual;
 					};
 				};
 			};
@@ -736,7 +736,7 @@
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_ENTITLEMENTS = HiddifyPacketTunnel/HiddifyPacketTunnel.entitlements;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 40102;
 				DEVELOPMENT_TEAM = K7BZZQL253;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -787,7 +787,7 @@
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_ENTITLEMENTS = HiddifyPacketTunnel/HiddifyPacketTunnel.entitlements;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 40102;
 				DEVELOPMENT_TEAM = K7BZZQL253;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -836,7 +836,7 @@
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_ENTITLEMENTS = HiddifyPacketTunnel/HiddifyPacketTunnel.entitlements;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 40102;
 				DEVELOPMENT_TEAM = K7BZZQL253;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -983,7 +983,7 @@
 			baseConfigurationReference = 0337C822BEDF7A95576475B3 /* Pods-RunnerTests.debug.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 40102;
 				DEVELOPMENT_TEAM = K7BZZQL253;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1002,7 +1002,7 @@
 			baseConfigurationReference = 808A94F72872B54716770416 /* Pods-RunnerTests.release.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 40102;
 				DEVELOPMENT_TEAM = K7BZZQL253;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1019,7 +1019,7 @@
 			baseConfigurationReference = 040FA3EB0673B72D60CC7145 /* Pods-RunnerTests.profile.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 40102;
 				DEVELOPMENT_TEAM = K7BZZQL253;
 				GENERATE_INFOPLIST_FILE = YES;
