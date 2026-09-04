@@ -122,11 +122,11 @@ workflows:
           mkdir -p out
           hdiutil create -volname Okno -srcfolder "$APP" -ov -format UDZO out/Okno-macOS.dmg
           echo "$APP_STORE_CONNECT_PRIVATE_KEY_B64" | base64 --decode > /tmp/asc.p8
-          app-store-connect notarize out/Okno-macOS.dmg \
-            --issuer-id 29530fc3-b27b-45ae-8736-b014342b4844 \
-            --key-id 32D5G8Z738 \
-            --private-key @file:/tmp/asc.p8
+          xcrun notarytool submit out/Okno-macOS.dmg \
+            --key /tmp/asc.p8 --key-id 32D5G8Z738 \
+            --issuer 29530fc3-b27b-45ae-8736-b014342b4844 --wait
           xcrun stapler staple out/Okno-macOS.dmg
+          spctl -a -vvv -t install out/Okno-macOS.dmg || true
     artifacts:
       - out/*.dmg
     publishing:
