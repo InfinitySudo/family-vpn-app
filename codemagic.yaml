@@ -47,10 +47,21 @@ workflows:
           # закрепить ручной стиль после flutter (он мог обновить pbxproj)
           sed -i "" "s/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g; s/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g" ios/Runner.xcodeproj/project.pbxproj || true
           xcode-project use-profiles
-          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
-          cp "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/"*.mobileprovision "$HOME/Library/MobileDevice/Provisioning Profiles/" 2>/dev/null || true
-          echo "=== профили ==="; ls "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/" || true
-          xcode-project build-ipa --workspace ios/Runner.xcworkspace --scheme Runner
+          mkdir -p ~/private_keys
+          echo "$APP_STORE_CONNECT_PRIVATE_KEY_B64" | base64 --decode > ~/private_keys/AuthKey_32D5G8Z738.p8
+          xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release \
+            -archivePath $HOME/Runner.xcarchive archive COMPILER_INDEX_STORE_ENABLE=NO \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_32D5G8Z738.p8 \
+            -authenticationKeyID 32D5G8Z738 \
+            -authenticationKeyIssuerID 29530fc3-b27b-45ae-8736-b014342b4844
+          mkdir -p build/ios/ipa
+          xcodebuild -exportArchive -archivePath $HOME/Runner.xcarchive \
+            -exportPath build/ios/ipa -exportOptionsPlist $HOME/export_options.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_32D5G8Z738.p8 \
+            -authenticationKeyID 32D5G8Z738 \
+            -authenticationKeyIssuerID 29530fc3-b27b-45ae-8736-b014342b4844
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
