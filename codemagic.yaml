@@ -51,7 +51,7 @@ workflows:
             --dart-define sentry_dsn= --dart-define subscription_url="$SUBSCRIPTION_URL"
           # 2) ключ ASC на диск для -allowProvisioningUpdates
           mkdir -p ~/private_keys
-          printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" > ~/private_keys/AuthKey_$APP_STORE_CONNECT_KEY_IDENTIFIER.p8
+          echo "$APP_STORE_CONNECT_PRIVATE_KEY_B64" | base64 --decode > ~/private_keys/AuthKey_$APP_STORE_CONNECT_KEY_IDENTIFIER.p8
           # 3) архив: Xcode сам создаёт управляемый профиль со всеми возможностями (App Groups, Network Extension)
           xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release \
             -archivePath $CM_BUILD_DIR/Runner.xcarchive archive \
