@@ -41,14 +41,6 @@ workflows:
             --certificate-key "@env:CERTIFICATE_PRIVATE_KEY" --create
           keychain add-certificates
           BUILD_NUMBER=$(($(date +%s) % 100000000))
-          flutter build ios --release --no-codesign --target lib/main_prod.dart \
-            --build-number "$BUILD_NUMBER" \
-            --dart-define sentry_dsn= --dart-define subscription_url="$SUBSCRIPTION_URL"
-          # архив прямым xcodebuild: имена профилей и Manual зашиты в pbxproj по целям
-          xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release \
-            -archivePath $HOME/Runner.xcarchive archive \
-            COMPILER_INDEX_STORE_ENABLE=NO DEVELOPMENT_TEAM=K7BZZQL253
-          # ручной exportOptions с картой профилей
           cat > /tmp/export.plist <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -63,9 +55,11 @@ workflows:
           </dict>
           </dict></plist>
           PLIST
+          # штатная сборка ipa: правильно вкладывает Flutter.framework и HiddifyCore (белый экран был из-за ручной архивации)
+          flutter build ipa --release --target lib/main_prod.dart --build-number "$BUILD_NUMBER" \
+            --dart-define sentry_dsn= --dart-define subscription_url="$SUBSCRIPTION_URL" \
+            --export-options-plist /tmp/export.plist
           mkdir -p build/ios/ipa
-          xcodebuild -exportArchive -archivePath $HOME/Runner.xcarchive \
-            -exportPath build/ios/ipa -exportOptionsPlist /tmp/export.plist
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
