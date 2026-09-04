@@ -31,7 +31,7 @@ workflows:
           ls -la ios/Frameworks
       - name: Pod install
         script: cd ios && pod install --repo-update
-      - name: Build & sign iOS (одна сессия: ключи, профили, архив)
+      - name: Build and sign iOS
         script: |
           set -e
           keychain initialize
