@@ -16,9 +16,18 @@ public enum FilePath {
 public extension FilePath {
     static let groupName = "group.\(packageName)"
 
-    private static let defaultSharedDirectory: URL! = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: FilePath.groupName)
+    private static let defaultSharedDirectory: URL = {
+        if let url = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: FilePath.groupName) {
+            return url
+        }
+        // Фолбэк: если контейнер App Group недоступен — не роняем приложение нативно,
+        // используем собственную Library-папку, чтобы старт дошёл до UI/диагностики.
+        NSLog("OKNO: app group container is nil for \(FilePath.groupName), falling back to local Library dir")
+        return FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+    }()
 
-    static let sharedDirectory = defaultSharedDirectory!
+    static let sharedDirectory = defaultSharedDirectory
 
     static let cacheDirectory = sharedDirectory
         .appendingPathComponent("Library", isDirectory: true)
