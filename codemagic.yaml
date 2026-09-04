@@ -103,6 +103,12 @@ workflows:
           keychain initialize
           echo "$MACOS_DEVID_CERT_P12_B64" | base64 --decode > /tmp/devid.p12
           keychain add-certificates --certificate /tmp/devid.p12 --certificate-password "$MACOS_DEVID_CERT_PASSWORD"
+          # промежуточные и корневой сертификаты Apple — иначе цепочка Developer ID не строится
+          curl -fsSL https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer -o /tmp/DeveloperIDG2CA.cer
+          curl -fsSL https://www.apple.com/appleca/AppleIncRootCertificate.cer -o /tmp/AppleRoot.cer
+          curl -fsSL https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer -o /tmp/WWDRG3.cer || true
+          keychain add-certificates --certificate /tmp/DeveloperIDG2CA.cer --certificate /tmp/AppleRoot.cer --certificate /tmp/WWDRG3.cer || {
+            for c in /tmp/DeveloperIDG2CA.cer /tmp/AppleRoot.cer /tmp/WWDRG3.cer; do keychain add-certificates --certificate "$c" || true; done; }
       - name: Build & sign macOS app
         script: |
           set -e
