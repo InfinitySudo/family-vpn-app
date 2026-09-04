@@ -31,7 +31,7 @@ workflows:
           ls -la ios/Frameworks
       - name: Pod install
         script: cd ios && pod install --repo-update
-      - name: Fetch signing files (app + packet tunnel)
+      - name: Build & sign iOS (одна сессия: ключи, профили, архив)
         script: |
           set -e
           keychain initialize
@@ -40,24 +40,16 @@ workflows:
           app-store-connect fetch-signing-files "$TUNNEL_BUNDLE_ID" --type IOS_APP_STORE \
             --certificate-key "@env:CERTIFICATE_PRIVATE_KEY" --create
           keychain add-certificates
-          ls -la "$HOME/Library/MobileDevice/Provisioning Profiles/" || true
-      - name: Build IPA (ручная подпись App Store)
-        script: |
-          set -e
           BUILD_NUMBER=$(($(date +%s) % 100000000))
           flutter build ios --release --no-codesign --target lib/main_prod.dart \
             --build-number "$BUILD_NUMBER" \
             --dart-define sentry_dsn= --dart-define subscription_url="$SUBSCRIPTION_URL"
-          # закрепить ручной стиль ПОСЛЕ flutter (он мог обновить pbxproj)
+          # закрепить ручной стиль после flutter (он мог обновить pbxproj)
           sed -i "" "s/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g; s/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g" ios/Runner.xcodeproj/project.pbxproj || true
-          # привязать профили App Store к целям + сгенерировать export_options
           xcode-project use-profiles
-          # архив прямым xcodebuild БЕЗ глобальной перебивки подписи — берёт Manual+профили из проекта
-          xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release \
-            -archivePath $HOME/Runner.xcarchive archive COMPILER_INDEX_STORE_ENABLE=NO
-          mkdir -p build/ios/ipa
-          xcodebuild -exportArchive -archivePath $HOME/Runner.xcarchive \
-            -exportPath build/ios/ipa -exportOptionsPlist $HOME/export_options.plist
+          echo "=== установленные профили ==="
+          ls -la "$HOME/Library/MobileDevice/Provisioning Profiles/" || true
+          xcode-project build-ipa --workspace ios/Runner.xcworkspace --scheme Runner
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
