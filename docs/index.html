@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Окно · Скачать</title>
+<meta name="description" content="Окно — семейный VPN в одну кнопку. Скачать для Android, iPhone, Windows, Mac. Всегда последняя версия.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&family=Inter:wght@400;500;600&display=swap">
+<style>
+  :root{
+    color-scheme:light dark;
+    --accent:#2D6BE4; --accent-soft:#5B8DEF; --accent-ghost:#E7EFFD;
+    --ground:#F5F8FD; --card:#FFFFFF; --ink:#161E2E; --muted:#5E6B85;
+    --line:#DCE4F1; --ok:#2Fb457; --ok-ghost:#E3F6E9; --warn:#E8850C;
+    --shadow:0 1px 2px rgba(22,30,46,.06),0 12px 28px rgba(29,64,120,.10);
+    --shadow-lift:0 2px 6px rgba(22,30,46,.08),0 20px 44px rgba(29,64,120,.18);
+    --r:20px;
+    --disp:"Nunito",system-ui,sans-serif; --body:"Inter",system-ui,sans-serif;
+  }
+  :root:not([data-theme="light"]){ @media (prefers-color-scheme: dark){
+    --accent:#5B8DEF; --accent-soft:#7BA6F5; --accent-ghost:#17233C;
+    --ground:#0C1120; --card:#141C2E; --ink:#EAF0FB; --muted:#9AA7C2;
+    --line:#26324B; --ok:#41D07E; --ok-ghost:#122A1E; --warn:#F5A83A;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 30px rgba(0,0,0,.5);
+    --shadow-lift:0 2px 8px rgba(0,0,0,.5),0 22px 48px rgba(0,0,0,.6);
+  }}
+  :root[data-theme="dark"]{
+    --accent:#5B8DEF; --accent-soft:#7BA6F5; --accent-ghost:#17233C;
+    --ground:#0C1120; --card:#141C2E; --ink:#EAF0FB; --muted:#9AA7C2;
+    --line:#26324B; --ok:#41D07E; --ok-ghost:#122A1E; --warn:#F5A83A;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 30px rgba(0,0,0,.5);
+    --shadow-lift:0 2px 8px rgba(0,0,0,.5),0 22px 48px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);font-family:var(--body);
+    line-height:1.55;margin:0;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:960px;margin:0 auto;padding:28px 20px 64px}
+  a{color:inherit}
+
+  header{display:flex;align-items:center;gap:14px;justify-content:center;padding:18px 0 10px}
+  .logo{width:44px;height:44px;border-radius:12px;background:var(--accent);display:grid;
+    grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:5px;padding:9px}
+  .logo i{background:#fff;border-radius:2px;display:block}
+  .brand{font-family:var(--disp);font-weight:800;font-size:26px;letter-spacing:-.01em}
+
+  .hero{text-align:center;margin:8px auto 30px;max-width:620px}
+  .hero h1{font-family:var(--disp);font-weight:800;font-size:clamp(30px,6vw,44px);
+    line-height:1.1;margin:14px 0 10px;text-wrap:balance}
+  .hero p{font-size:19px;color:var(--muted);margin:0 auto;max-width:30ch}
+  .ver{display:inline-flex;align-items:center;gap:8px;margin-top:14px;padding:7px 14px;border-radius:999px;
+    background:var(--ok-ghost);color:var(--ok);font-weight:600;font-size:14px;text-decoration:none}
+  .ver.wait{background:var(--accent-ghost);color:var(--accent)}
+  .ver b{font-family:var(--disp);font-weight:800}
+
+  .pick{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+    box-shadow:var(--shadow-lift);padding:22px;display:flex;align-items:center;gap:20px;
+    margin:0 0 34px;flex-wrap:wrap}
+  .pick .ic{width:60px;height:60px;flex:none;border-radius:16px;background:var(--accent-ghost);
+    display:grid;place-items:center;color:var(--accent)}
+  .pick .ic svg{width:34px;height:34px}
+  .pick .txt{flex:1 1 220px;min-width:0}
+  .pick .eyebrow{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--accent)}
+  .pick .name{font-family:var(--disp);font-weight:800;font-size:22px;margin-top:2px}
+  .pick .sub{color:var(--muted);font-size:15px}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;
+    font-family:var(--disp);font-weight:800;font-size:19px;color:#fff;background:var(--accent);
+    border:none;border-radius:14px;padding:16px 26px;text-decoration:none;cursor:pointer;
+    box-shadow:0 8px 18px rgba(45,107,228,.32);transition:transform .12s ease,box-shadow .12s ease;white-space:nowrap}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(45,107,228,.42)}
+  .btn:focus-visible{outline:3px solid var(--accent-soft);outline-offset:3px}
+  .btn svg{width:22px;height:22px}
+  .btn.big{font-size:21px;padding:18px 30px}
+
+  h2.section{font-family:var(--disp);font-weight:800;font-size:22px;margin:0 0 18px;text-align:center}
+
+  .notes{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);
+    padding:18px 22px;margin:0 0 30px;font-size:15px}
+  .notes h3{font-family:var(--disp);font-weight:800;font-size:17px;margin:0 0 6px}
+  .notes p{margin:0;color:var(--muted);white-space:pre-line}
+
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+  @media (max-width:680px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+    box-shadow:var(--shadow);padding:22px;display:flex;flex-direction:column;gap:16px;
+    transition:box-shadow .15s ease,border-color .15s ease}
+  .card.on{border-color:var(--accent);box-shadow:var(--shadow-lift)}
+  .card .top{display:flex;align-items:center;gap:13px}
+  .card .glyph{width:48px;height:48px;flex:none;border-radius:13px;background:var(--accent-ghost);
+    display:grid;place-items:center;color:var(--accent)}
+  .card .glyph svg{width:27px;height:27px}
+  .card h3{font-family:var(--disp);font-weight:800;font-size:20px;margin:0}
+  .card .dev{color:var(--muted);font-size:14px;margin-top:1px}
+  ol.steps{margin:0;padding:0;list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:9px}
+  ol.steps li{counter-increment:s;position:relative;padding-left:34px;font-size:15.5px;color:var(--ink)}
+  ol.steps li::before{content:counter(s);position:absolute;left:0;top:-1px;width:24px;height:24px;
+    border-radius:50%;background:var(--accent-ghost);color:var(--accent);font-family:var(--disp);
+    font-weight:800;font-size:13px;display:grid;place-items:center}
+  .card .foot{margin-top:auto;display:flex;flex-direction:column;gap:8px}
+  .altlink{font-size:13.5px;color:var(--muted);text-align:center}
+  .altlink a{color:var(--accent);text-decoration:none;font-weight:600}
+
+  .how{background:var(--accent);color:#fff;border-radius:var(--r);padding:26px 24px;margin:34px 0 0;
+    text-align:center}
+  .how h2{font-family:var(--disp);font-weight:800;font-size:22px;margin:0 0 6px;color:#fff}
+  .how p{margin:0 auto;max-width:34ch;font-size:16px;opacity:.92}
+
+  footer{text-align:center;color:var(--muted);font-size:13.5px;margin-top:34px;line-height:1.7}
+  footer a{color:var(--accent)}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="logo" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div class="brand">Окно</div>
+  </header>
+
+  <div class="hero">
+    <h1>Интернет без границ. В одну кнопку.</h1>
+    <p>Выбери своё устройство, скачай и нажми большую кнопку. Всё.</p>
+    <a class="ver wait" id="ver" href="https://github.com/InfinitySudo/family-vpn-app/releases/latest">Проверяю последнюю версию…</a>
+  </div>
+
+  <section class="pick" id="pick" hidden>
+    <div class="ic" id="pickIc"></div>
+    <div class="txt">
+      <div class="eyebrow">Похоже, это твоё устройство</div>
+      <div class="name" id="pickName">—</div>
+      <div class="sub" id="pickSub">Нажми кнопку справа, чтобы скачать.</div>
+    </div>
+    <a class="btn big" id="pickBtn" href="#">Скачать</a>
+  </section>
+
+  <section class="notes" id="notes" hidden>
+    <h3 id="notesTitle">Что нового</h3>
+    <p id="notesBody"></p>
+  </section>
+
+  <h2 class="section">Или выбери сам</h2>
+
+  <div class="grid">
+    <article class="card" id="c-android">
+      <div class="top">
+        <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><line x1="10" y1="18.5" x2="14" y2="18.5"/></svg></div>
+        <div><h3>Телефон Android</h3><div class="dev">Samsung, Xiaomi, Honor и другие</div></div>
+      </div>
+      <ol class="steps">
+        <li>Нажми синюю кнопку — файл скачается.</li>
+        <li>Открой его. Если телефон спросит — разреши установку.</li>
+        <li>Открой «Окно», нажми большую кнопку. Готово.</li>
+      </ol>
+      <div class="foot">
+        <a class="btn" data-asset="Okno-Android-arm64.apk" href="https://github.com/InfinitySudo/family-vpn-app/releases/latest/download/Okno-Android-arm64.apk">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>
+          Скачать для Android
+        </a>
+        <div class="altlink">Старый телефон? <a data-asset="Okno-Android-arm7.apk" href="https://github.com/InfinitySudo/family-vpn-app/releases/latest/download/Okno-Android-arm7.apk">Скачать облегчённую версию</a></div>
+      </div>
+    </article>
+
+    <article class="card" id="c-ios">
+      <div class="top">
+        <div class="glyph"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.9c0-2 1.6-3 1.7-3-1-1.4-2.4-1.6-2.9-1.6-1.2-.1-2.4.7-3 .7-.6 0-1.6-.7-2.6-.7-1.3 0-2.6.8-3.2 2-1.4 2.4-.4 6 1 7.9.6 1 1.4 2 2.4 2 1 0 1.3-.6 2.5-.6s1.5.6 2.5.6 1.7-1 2.3-2c.7-1.1 1-2.2 1-2.3 0 0-1.9-.8-2-3zM14.6 6.3c.5-.7.9-1.6.8-2.5-.8 0-1.7.5-2.3 1.2-.5.6-1 1.5-.8 2.4.9.1 1.7-.4 2.3-1.1z"/></svg></div>
+        <div><h3>iPhone и iPad</h3><div class="dev">Apple iOS</div></div>
+      </div>
+      <ol class="steps">
+        <li>Установи из App Store бесплатное приложение <b>TestFlight</b> (ссылка ниже).</li>
+        <li>Вернись сюда и нажми «Получить Окно» — откроется TestFlight, нажми <b>Установить</b>.</li>
+        <li>Открой «Окно», нажми большую кнопку. Готово.</li>
+      </ol>
+      <div class="foot">
+        <a class="btn" href="https://testflight.apple.com/join/UJYhuaWF">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>
+          Получить Окно
+        </a>
+        <div class="altlink">Сначала нужен <a href="https://apps.apple.com/app/testflight/id899247664">TestFlight из App Store</a>. Пишет «недоступно»? Напиши Артёму свою почту Apple ID — пришлёт приглашение.</div>
+      </div>
+    </article>
+
+    <article class="card" id="c-win">
+      <div class="top">
+        <div class="glyph"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5 10.5 4.4v7.1H3zM11.5 4.3 21 3v8.5h-9.5zM3 12.5h7.5v7.1L3 18.5zM11.5 12.5H21V21l-9.5-1.3z"/></svg></div>
+        <div><h3>Компьютер Windows</h3><div class="dev">Ноутбук или ПК</div></div>
+      </div>
+      <ol class="steps">
+        <li>Нажми кнопку — скачается файл установки.</li>
+        <li>Открой его. Синее окно? «Подробнее» → «Выполнить в любом случае».</li>
+        <li>Открой «Окно», нажми большую кнопку.</li>
+      </ol>
+      <div class="foot">
+        <a class="btn" data-asset="Okno-Windows-Setup-x64.exe" href="https://github.com/InfinitySudo/family-vpn-app/releases/latest/download/Okno-Windows-Setup-x64.exe">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>
+          Скачать для Windows
+        </a>
+      </div>
+    </article>
+
+    <article class="card" id="c-mac">
+      <div class="top">
+        <div class="glyph"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.9c0-2 1.6-3 1.7-3-1-1.4-2.4-1.6-2.9-1.6-1.2-.1-2.4.7-3 .7-.6 0-1.6-.7-2.6-.7-1.3 0-2.6.8-3.2 2-1.4 2.4-.4 6 1 7.9.6 1 1.4 2 2.4 2 1 0 1.3-.6 2.5-.6s1.5.6 2.5.6 1.7-1 2.3-2c.7-1.1 1-2.2 1-2.3 0 0-1.9-.8-2-3zM14.6 6.3c.5-.7.9-1.6.8-2.5-.8 0-1.7.5-2.3 1.2-.5.6-1 1.5-.8 2.4.9.1 1.7-.4 2.3-1.1z"/></svg></div>
+        <div><h3>Компьютер Mac</h3><div class="dev">MacBook, iMac</div></div>
+      </div>
+      <ol class="steps">
+        <li>Нажми кнопку, открой файл, перетащи «Окно» в «Программы».</li>
+        <li>Открой «Окно». Пишет «повреждено»? Позвони Артёму, это одна команда.</li>
+        <li>Нажми большую кнопку.</li>
+      </ol>
+      <div class="foot">
+        <a class="btn" data-asset="Okno-MacOS.dmg" href="https://github.com/InfinitySudo/family-vpn-app/releases/latest/download/Okno-MacOS.dmg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>
+          Скачать для Mac
+        </a>
+      </div>
+    </article>
+  </div>
+
+  <div class="how">
+    <h2>Как пользоваться</h2>
+    <p>Открыл «Окно», нажал большую круглую кнопку. Стала зелёной — работает. Нажал ещё раз — выключилось. Больше ничего.</p>
+  </div>
+
+  <footer>
+    Ничего настраивать не нужно — всё уже внутри. Кнопки всегда скачивают последнюю версию.<br>
+    Не получается? Напиши тому, кто прислал эту страницу. <a href="https://github.com/InfinitySudo/family-vpn-app/releases">Все версии</a>
+  </footer>
+</div>
+
+<script>
+  (function(){
+    var ua = navigator.userAgent || "";
+    var plat = navigator.platform || "";
+    var touch = navigator.maxTouchPoints || 0;
+    var kind = null;
+    if(/android/i.test(ua)) kind="android";
+    else if(/iphone|ipad|ipod/i.test(ua) || (plat==="MacIntel" && touch>1)) kind="ios";
+    else if(/win/i.test(plat) || /windows/i.test(ua)) kind="win";
+    else if(/mac/i.test(plat) || /mac os/i.test(ua)) kind="mac";
+
+    var apple='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.9c0-2 1.6-3 1.7-3-1-1.4-2.4-1.6-2.9-1.6-1.2-.1-2.4.7-3 .7-.6 0-1.6-.7-2.6-.7-1.3 0-2.6.8-3.2 2-1.4 2.4-.4 6 1 7.9.6 1 1.4 2 2.4 2 1 0 1.3-.6 2.5-.6s1.5.6 2.5.6 1.7-1 2.3-2c.7-1.1 1-2.2 1-2.3 0 0-1.9-.8-2-3zM14.6 6.3c.5-.7.9-1.6.8-2.5-.8 0-1.7.5-2.3 1.2-.5.6-1 1.5-.8 2.4.9.1 1.7-.4 2.3-1.1z"/></svg>';
+    var map = {
+      android:{name:"Телефон Android", sub:"Скачай и открой файл — телефон поставит приложение.",
+               btn:"Скачать для Android", asset:"Okno-Android-arm64.apk",
+               href:"https://github.com/InfinitySudo/family-vpn-app/releases/latest/download/Okno-Android-arm64.apk",
+               ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><line x1="10" y1="18.5" x2="14" y2="18.5"/></svg>'},
+      ios:{name:"iPhone или iPad", sub:"Сначала поставь TestFlight из App Store, потом нажми кнопку.",
+           btn:"Получить Окно",
+           href:"https://testflight.apple.com/join/UJYhuaWF",
+           ic:apple},
+      win:{name:"Компьютер Windows", sub:"Скачай файл установки и открой его.",
+           btn:"Скачать для Windows", asset:"Okno-Windows-Setup-x64.exe",
+           href:"https://github.com/InfinitySudo/family-vpn-app/releases/latest/download/Okno-Windows-Setup-x64.exe",
+           ic:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5 10.5 4.4v7.1H3zM11.5 4.3 21 3v8.5h-9.5zM3 12.5h7.5v7.1L3 18.5zM11.5 12.5H21V21l-9.5-1.3z"/></svg>'},
+      mac:{name:"Компьютер Mac", sub:"Скачай, открой и перетащи «Окно» в «Программы».",
+           btn:"Скачать для Mac", asset:"Okno-MacOS.dmg",
+           href:"https://github.com/InfinitySudo/family-vpn-app/releases/latest/download/Okno-MacOS.dmg",
+           ic:apple}
+    };
+    var cardId = {android:"c-android", ios:"c-ios", win:"c-win", mac:"c-mac"}[kind];
+    if(cardId){ var c=document.getElementById(cardId); if(c) c.classList.add("on"); }
+
+    if(kind && map[kind]){
+      var d=map[kind];
+      document.getElementById("pickName").textContent=d.name;
+      document.getElementById("pickSub").textContent=d.sub;
+      document.getElementById("pickIc").innerHTML=d.ic;
+      var b=document.getElementById("pickBtn"); b.textContent=d.btn; b.href=d.href;
+      if(d.asset) b.setAttribute("data-asset", d.asset);
+      document.getElementById("pick").hidden=false;
+    }
+  })();
+</script>
+
+<!--LIVE-->
+<script>
+  // Живая версия: последний релиз GitHub. Страница ничего не хранит —
+  // новый релиз (тег vX.Y.Z-okno) появляется здесь сам, без правок страницы.
+  (function(){
+    var ver=document.getElementById("ver");
+    fetch("https://api.github.com/repos/InfinitySudo/family-vpn-app/releases/latest",{headers:{Accept:"application/vnd.github+json"}})
+      .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function(rel){
+        var v=(rel.tag_name||"").replace(/^v/,"").split("-")[0];
+        var d=rel.published_at?new Date(rel.published_at):null;
+        var ds=d?d.toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"}):"";
+        ver.className="ver";
+        ver.href=rel.html_url||ver.href;
+        ver.innerHTML="Последняя версия <b>"+v+"</b>"+(ds?" · "+ds:"");
+        var byName={}; (rel.assets||[]).forEach(function(a){ byName[a.name]=a.browser_download_url; });
+        document.querySelectorAll("[data-asset]").forEach(function(a){ var u=byName[a.getAttribute("data-asset")]; if(u) a.href=u; });
+        var body=(rel.body||"").replace(/\r/g,"").replace(/^#+\s*/gm,"").replace(/\*\*/g,"").replace(/^- /gm,"• ").trim();
+        if(body){
+          var lines=body.split("\n").filter(function(l){return l.trim();}).slice(0,6).join("\n");
+          document.getElementById("notesTitle").textContent="Что нового в "+v;
+          document.getElementById("notesBody").textContent=lines;
+          document.getElementById("notes").hidden=false;
+        }
+      })
+      .catch(function(){ ver.className="ver"; ver.textContent="Кнопки скачивают последнюю версию"; });
+  })();
+</script>
+<!--/LIVE-->
+
+</body>
+</html>
