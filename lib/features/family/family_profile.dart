@@ -16,7 +16,7 @@ const String familyProfileName = "Окно";
 /// стабильный адрес на GitHub (не зависит от IP серверов), и сама Рига последней.
 const List<String> familySubscriptionFallbacks = [
   "http://46.8.238.102:2097/okno/38fa3eb3adb9258d",
-  "http://46.8.238.158:2097/okno/38fa3eb3adb9258d",
+  "http://151.242.69.245:2097/okno/38fa3eb3adb9258d", // Амстердам (NL), 05.09; узел .158 выведен
   "https://raw.githubusercontent.com/InfinitySudo/family-vpn-app/sub/sub.txt",
   "http://95.182.90.237:2097/okno/38fa3eb3adb9258d", // второй IP Риги (05.09), из РФ открывается
   "http://217.60.2.82:2097/okno/38fa3eb3adb9258d",
