@@ -140,7 +140,18 @@ class CoreInterfaceMobile extends CoreInterface with InfraLogger {
 
     if (!await waitUntilPort(portBack, true, null, maxTry: 10)) {
       await stopMethodChannel();
-      return const CoreStatus.stopped(alert: CoreAlert.startService, message: "starting background core...");
+      // Окно: вместо «starting background core...» — что делать. Служба VPN не поднялась за отведённое время:
+      // чаще всего мешает другой VPN (в т.ч. «постоянный VPN» в настройках Android), запрет уведомлений
+      // или ограничение фоновой работы для приложения.
+      return const CoreStatus.stopped(
+        alert: CoreAlert.startService,
+        message: "Не удалось запустить службу VPN.\n\n"
+            "1. Выключите другие VPN-приложения и в Настройках Android → Подключения → Другие настройки → VPN "
+            "снимите «Постоянный VPN» с других приложений.\n"
+            "2. Разрешите «Окну» уведомления и уберите ограничение батареи (Настройки → Приложения → Окно).\n"
+            "3. Перезапустите телефон и нажмите кнопку ещё раз.\n\n"
+            "Если не помогло — Меню → Логи → поделиться, и пришлите файл.",
+      );
     }
     return const CoreStarted();
   }
