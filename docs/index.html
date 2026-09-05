@@ -165,11 +165,11 @@
         <li>Открой «Окно», нажми большую кнопку. Готово.</li>
       </ol>
       <div class="foot">
-        <a class="btn" data-asset="Okno-Android-arm64.apk" href="https://github.com/InfinitySudo/family-vpn-app/releases/latest/download/Okno-Android-arm64.apk">
+        <a class="btn" data-asset="Okno-Android-arm64.apk" href="https://github.com/InfinitySudo/family-vpn-app/releases/latest/download/Okno-Android-arm64.apk" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>
           Скачать для Android
         </a>
-        <div class="altlink">Старый телефон? <a data-asset="Okno-Android-arm7.apk" href="https://github.com/InfinitySudo/family-vpn-app/releases/latest/download/Okno-Android-arm7.apk">Скачать облегчённую версию</a></div>
+        <div class="altlink">Старый телефон? <a data-asset="Okno-Android-arm7.apk" href="https://github.com/InfinitySudo/family-vpn-app/releases/latest/download/Okno-Android-arm7.apk" target="_blank" rel="noopener">Скачать облегчённую версию</a></div>
       </div>
     </article>
 
@@ -184,11 +184,11 @@
         <li>Открой «Окно», нажми большую кнопку. Готово.</li>
       </ol>
       <div class="foot">
-        <a class="btn" href="https://testflight.apple.com/join/UJYhuaWF">
+        <a class="btn" href="https://testflight.apple.com/join/UJYhuaWF" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>
           Получить Окно
         </a>
-        <div class="altlink">Сначала нужен <a href="https://apps.apple.com/app/testflight/id899247664">TestFlight из App Store</a>. Пишет «недоступно»? Напиши Артёму свою почту Apple ID — пришлёт приглашение.</div>
+        <div class="altlink">Сначала нужен <a href="https://apps.apple.com/app/testflight/id899247664" target="_blank" rel="noopener" target="_blank" rel="noopener">TestFlight из App Store</a>. Пишет «недоступно»? Напиши Артёму свою почту Apple ID — пришлёт приглашение.</div>
       </div>
     </article>
 
@@ -203,7 +203,7 @@
         <li>Открой «Окно», нажми большую кнопку.</li>
       </ol>
       <div class="foot">
-        <a class="btn" data-asset="Okno-Windows-Setup-x64.exe" href="https://github.com/InfinitySudo/family-vpn-app/releases/latest/download/Okno-Windows-Setup-x64.exe">
+        <a class="btn" data-asset="Okno-Windows-Setup-x64.exe" href="https://github.com/InfinitySudo/family-vpn-app/releases/latest/download/Okno-Windows-Setup-x64.exe" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>
           Скачать для Windows
         </a>
@@ -221,7 +221,7 @@
         <li>Нажми большую кнопку.</li>
       </ol>
       <div class="foot">
-        <a class="btn" data-asset="Okno-MacOS.dmg" href="https://github.com/InfinitySudo/family-vpn-app/releases/latest/download/Okno-MacOS.dmg">
+        <a class="btn" data-asset="Okno-MacOS.dmg" href="https://github.com/InfinitySudo/family-vpn-app/releases/latest/download/Okno-MacOS.dmg" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>
           Скачать для Mac
         </a>
@@ -236,7 +236,7 @@
 
   <footer>
     Ничего настраивать не нужно — всё уже внутри. Кнопки всегда скачивают последнюю версию.<br>
-    Не получается? Напиши тому, кто прислал эту страницу. <a href="https://github.com/InfinitySudo/family-vpn-app/releases">Все версии</a>
+    Не получается? Напиши тому, кто прислал эту страницу. <a href="https://github.com/InfinitySudo/family-vpn-app/releases" target="_blank" rel="noopener" target="_blank" rel="noopener">Все версии</a>
   </footer>
 </div>
 
@@ -278,7 +278,7 @@
       document.getElementById("pickName").textContent=d.name;
       document.getElementById("pickSub").textContent=d.sub;
       document.getElementById("pickIc").innerHTML=d.ic;
-      var b=document.getElementById("pickBtn"); b.textContent=d.btn; b.href=d.href;
+      var b=document.getElementById("pickBtn"); b.textContent=d.btn; b.href=d.href; b.target="_blank"; b.rel="noopener";
       if(d.asset) b.setAttribute("data-asset", d.asset);
       document.getElementById("pick").hidden=false;
     }
