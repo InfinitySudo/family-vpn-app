@@ -1,7 +1,7 @@
 name: hiddify
 description: Cross Platform Multi Protocol Proxy Frontend.
 publish_to: "none"
-version: 1.0.6+7
+version: 1.0.7+8
 
 environment:
   sdk: ^3.10.4
@@ -142,6 +142,7 @@ flutter:
   assets:
     # - assets/core/geoip.db
     # - assets/core/geosite.db
+    - assets/landmarks/
     - assets/images/logo.svg
     - assets/images/tray_icon.ico
     - assets/images/tray_icon.png

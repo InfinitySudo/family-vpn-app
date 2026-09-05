@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
 import 'package:hiddify/core/router/go_router/helper/active_breakpoint_notifier.dart';
+import 'package:hiddify/features/family/country/country_picker.dart';
+import 'package:hiddify/features/family/country/okno_country.dart';
+import 'package:hiddify/features/family/country/okno_country_notifier.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
 import 'package:hiddify/features/settings/notifier/config_option/config_option_notifier.dart';
 import 'package:hiddify/features/settings/notifier/reset_tunnel/reset_tunnel_notifier.dart';
@@ -148,6 +151,20 @@ class SettingsPage extends HookConsumerWidget {
       body: ListView(
         children: [
           // TipCard(message: t.settings.experimentalMsg),
+          // Окно: страна подключения (та же, что на главном экране)
+          Builder(
+            builder: (context) {
+              final pref = ref.watch(oknoCountryPref);
+              final c = pref.isEmpty ? null : OknoCountry.byCode(pref);
+              return ListTile(
+                leading: c == null ? const Icon(Icons.public_rounded) : LandmarkFlag(country: c, size: 28),
+                title: const Text("Страна подключения"),
+                subtitle: Text(c == null ? "Авто — самый быстрый сервер" : "${c.name} · сохранена, включается при каждом подключении"),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => showCountryPicker(context),
+              );
+            },
+          ),
           SettingsSection(
             title: t.pages.settings.general.title,
             icon: Icons.layers_rounded,

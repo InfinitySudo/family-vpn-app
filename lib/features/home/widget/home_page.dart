@@ -4,6 +4,7 @@ import 'package:gap/gap.dart';
 import 'package:hiddify/core/app_info/app_info_provider.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hiddify/features/family/country/country_picker.dart';
 import 'package:hiddify/features/family/family_no_server_notice.dart';
 import 'package:hiddify/features/home/widget/connection_button.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
@@ -53,19 +54,17 @@ class HomePage extends HookConsumerWidget {
         ),
         ),
         actions: [
-          // IconButton(
-          //     onPressed: () => const QuickSettingsRoute().push(context),
-          //     icon: const Icon(FluentIcons.options_24_filled),
-          //     material: (context, platform) => MaterialIconButtonData(
-          //           tooltip: t.config.quickSettings,
-          //         )),
-          // IconButton(
-          //     onPressed: () => const AddProfileRoute().push(context),
-          //     icon: const Icon(FluentIcons.add_circle_24_filled),
-          //     material: (context, platform) => MaterialIconButtonData(
-          //           tooltip: t.profile.add.buttonText,
-          //         )),
-          const Gap(8),
+          // Окно: явная кнопка «Меню» — раньше в настройки вёл только скрытый
+          // долгий тап по заголовку, и о нём никто не знал.
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: FilledButton.tonalIcon(
+              key: const ValueKey("home_menu_button"),
+              onPressed: () => context.go("/settings"),
+              icon: const Icon(Icons.menu_rounded),
+              label: const Text("Меню"),
+            ),
+          ),
         ],
       ),
       body: Container(
@@ -106,6 +105,9 @@ class HomePage extends HookConsumerWidget {
                           ),
                           _ => const FamilyNoServerNotice(),
                         },
+                        // Окно: выбор страны (флаг · пинг · AI) — стабильная страна
+                        // нужна, чтобы работали ChatGPT и прочие AI-сервисы.
+                        const SliverToBoxAdapter(child: CountryCard()),
                         const SliverFillRemaining(
                           hasScrollBody: false,
                           child: Column(
