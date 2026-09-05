@@ -138,7 +138,25 @@ class CoreInterfaceMobile extends CoreInterface with InfraLogger {
     }
     loggy.info("Waiting for starting core finished");
 
-    if (!await waitUntilPort(portBack, true, null, maxTry: 10)) {
+    // Окно: на некоторых Android (Samsung, Android 14–15) фоновая служба поднимается дольше 2 с —
+    // ждём до 8 с, и если порт так и не открылся, пробуем запустить службу ещё раз, прежде чем ругаться
+    // (upstream hiddify-app #2047: старт отвечает «успех» раньше, чем служба реально готова).
+    var portUp = await waitUntilPort(portBack, true, null, maxTry: 40);
+    if (!portUp) {
+      loggy.warning("bg core port not up after first attempt, restarting service once");
+      await stopMethodChannel();
+      await Future.delayed(const Duration(milliseconds: 800));
+      _status.clean();
+      await methodChannel.invokeMethod("start", {
+        "path": path,
+        "name": name,
+        "grpcPort": portBack,
+        "startBg": true,
+        "debug": _debug,
+      });
+      portUp = await waitUntilPort(portBack, true, null, maxTry: 40);
+    }
+    if (!portUp) {
       await stopMethodChannel();
       // Окно: вместо «starting background core...» — что делать. Служба VPN не поднялась за отведённое время:
       // чаще всего мешает другой VPN (в т.ч. «постоянный VPN» в настройках Android), запрет уведомлений
