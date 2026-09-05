@@ -30,6 +30,7 @@ class MethodHandler(private val scope: CoroutineScope) : FlutterPlugin,
         enum class Trigger(val method: String) {
             Setup("setup"),
             Start("start"),
+            Prepare("prepare"),
             Stop("stop"),
             Restart("restart"),
             AddGrpcClientPublicKey("add_grpc_client_public_key"),
@@ -109,6 +110,15 @@ class MethodHandler(private val scope: CoroutineScope) : FlutterPlugin,
                 }
             }
 
+
+            // Окно: запросить разрешения заранее; отвечает true/false, когда пользователь закрыл диалоги
+            Trigger.Prepare.method -> {
+                scope.launch {
+                    result.runCatching {
+                        success(MainActivity.instance.ensurePermissions())
+                    }
+                }
+            }
 
             Trigger.Start.method -> {
                 scope.launch {

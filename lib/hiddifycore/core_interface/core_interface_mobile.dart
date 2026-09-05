@@ -104,6 +104,24 @@ class CoreInterfaceMobile extends CoreInterface with InfraLogger {
   Future<CoreStatus> setupBackground(String path, String name) async {
     // if (!await waitUntilPort(portBack, false, stop)) return const CoreStatus.stopped(alert: CoreAlert.createService);
     if (!await stop()) return const CoreStatus.stopped(alert: CoreAlert.createService);
+    // Окно: сначала разрешения (уведомления + согласие Android на VPN) БЕЗ таймера — диалоги могут висеть
+    // сколько угодно, и только потом старт службы с таймером ожидания. Иначе первое нажатие на свежей
+    // установке заканчивалось «Непредвиденный сбой», а второе работало.
+    if (Platform.isAndroid) {
+      try {
+        final granted = await methodChannel.invokeMethod<bool>("prepare");
+        if (granted == false) {
+          return const CoreStatus.stopped(
+            alert: CoreAlert.requestVPNPermission,
+            message: "Разрешите «Окну» VPN-подключение (и уведомления) и нажмите кнопку ещё раз.",
+          );
+        }
+      } on MissingPluginException {
+        // старая нативная часть без «prepare» — идём по-старому
+      } catch (e) {
+        loggy.warning("prepare permissions failed: $e");
+      }
+    }
     _status.clean();
     await methodChannel.invokeMethod("start", {
       "path": path,

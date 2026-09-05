@@ -20,9 +20,11 @@ INTERNAL_GROUP = "52aa3e4d-afac-4fd0-bfa9-d03814bdc4b5"
 
 # По умолчанию — тёща Артёма (iPad), данные с фото 05.09. Пароль от её Apple ID сюда НЕ записан и не нужен:
 # приглашение принимается на её устройстве. Другой человек: аргументами <email> [Имя] [Фамилия].
-DEFAULT_EMAIL = "marinaminfener@gmail.com"
+DEFAULT_EMAIL = "marinaminjener@gmail.com"  # уточнено Артёмом 05.09 (с фото читалось «minfener»)
 DEFAULT_FIRST = "Marina"
-DEFAULT_LAST = "Minfener"
+DEFAULT_LAST = "Minjener"
+# приглашения, ушедшие по ошибочному адресу — отзываем при каждом запуске
+STALE_EMAILS = ["marinaminfener@gmail.com"]
 
 
 def main():
@@ -33,6 +35,13 @@ def main():
     first = sys.argv[2] if len(sys.argv) > 2 else DEFAULT_FIRST
     last = sys.argv[3] if len(sys.argv) > 3 else DEFAULT_LAST
     print(f"== TestFlight Internal для {email} ({first} {last})")
+    for stale in STALE_EMAILS:
+        if stale == email:
+            continue
+        c, inv = asc.req("GET", f"/v1/userInvitations?filter[email]={stale}")
+        for x in inv.get("data", []) if isinstance(inv, dict) else []:
+            c, r = asc.req("DELETE", f"/v1/userInvitations/{x['id']}")
+            print(f"ошибочное приглашение {stale} отозвано:", c)
 
     # 0) --resend: удалить висящее приглашение и выслать заново (Apple шлёт письмо ещё раз)
     if resend:

@@ -19,6 +19,7 @@ import com.hiddify.hiddify.constant.ServiceMode
 import com.hiddify.hiddify.constant.Status
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -56,6 +57,48 @@ class MainActivity : FlutterFragmentActivity(), ServiceConnection.Callback {
 
     fun reconnect() {
         connection.reconnect()
+    }
+
+    // Окно: разрешения (уведомления на Android 13+ и согласие на VPN) запрашиваются ОТДЕЛЬНО и заранее,
+    // а Dart ждёт результата без таймера. Раньше диалоги висели, пока Dart отсчитывал таймаут старта службы,
+    // и первое нажатие кнопки заканчивалось «Непредвиденный сбой» (второе — работало).
+    private var permissionRequest: CompletableDeferred<Boolean>? = null
+
+    @SuppressLint("NewApi")
+    suspend fun ensurePermissions(): Boolean {
+        permissionRequest?.let { return it.await() }
+        val deferred = CompletableDeferred<Boolean>()
+        permissionRequest = deferred
+        withContext(Dispatchers.Main) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !ServiceNotification.checkPermission()) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                continuePermissions()
+            }
+        }
+        val ok = deferred.await()
+        permissionRequest = null
+        return ok
+    }
+
+    // главный поток: после уведомлений — согласие системы на VPN
+    private fun continuePermissions() {
+        val req = permissionRequest ?: return
+        if (Settings.serviceMode == ServiceMode.VPN) {
+            try {
+                val intent = VpnService.prepare(this)
+                if (intent != null) {
+                    prepareLauncher.launch(intent)
+                    return
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "VpnService.prepare failed: ${e.message}")
+                onServiceAlert(Alert.RequestVPNPermission, e.message)
+                req.complete(false)
+                return
+            }
+        }
+        req.complete(true)
     }
 
     @SuppressLint("NewApi")
@@ -103,7 +146,15 @@ class MainActivity : FlutterFragmentActivity(), ServiceConnection.Callback {
         registerForActivityResult(
             ActivityResultContracts.RequestPermission(),
         ) { isGranted ->
-            if (Settings.dynamicNotification && !isGranted) {
+            val req = permissionRequest
+            if (req != null) {
+                if (Settings.dynamicNotification && !isGranted) {
+                    onServiceAlert(Alert.RequestNotificationPermission, null)
+                    req.complete(false)
+                } else {
+                    continuePermissions()
+                }
+            } else if (Settings.dynamicNotification && !isGranted) {
                 onServiceAlert(Alert.RequestNotificationPermission, null)
             } else {
                 startService0()
@@ -114,7 +165,15 @@ class MainActivity : FlutterFragmentActivity(), ServiceConnection.Callback {
         registerForActivityResult(
             ActivityResultContracts.StartActivityForResult(),
         ) { result ->
-            if (result.resultCode == RESULT_OK) {
+            val req = permissionRequest
+            if (req != null) {
+                if (result.resultCode == RESULT_OK) {
+                    req.complete(true)
+                } else {
+                    onServiceAlert(Alert.RequestVPNPermission, null)
+                    req.complete(false)
+                }
+            } else if (result.resultCode == RESULT_OK) {
                 startService0()
             } else {
                 onServiceAlert(Alert.RequestVPNPermission, null)
