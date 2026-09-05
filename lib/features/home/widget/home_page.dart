@@ -6,6 +6,7 @@ import 'package:hiddify/core/localization/translations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hiddify/features/family/country/country_picker.dart';
 import 'package:hiddify/features/family/family_no_server_notice.dart';
+import 'package:hiddify/features/family/update/okno_update.dart';
 import 'package:hiddify/features/home/widget/connection_button.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
 import 'package:hiddify/features/profile/widget/profile_tile.dart';
@@ -108,6 +109,8 @@ class HomePage extends HookConsumerWidget {
                         // Окно: выбор страны (флаг · пинг · AI) — стабильная страна
                         // нужна, чтобы работали ChatGPT и прочие AI-сервисы.
                         const SliverToBoxAdapter(child: CountryCard()),
+                        // Окно: плашка «доступна новая версия» (проверка при запуске и каждые 12 ч)
+                        const SliverToBoxAdapter(child: UpdateBanner()),
                         const SliverFillRemaining(
                           hasScrollBody: false,
                           child: Column(
