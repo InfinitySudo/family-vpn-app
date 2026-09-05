@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800;900&family=Manrope:wght@500;600;700;800&display=swap">
+<style>
+  :root{--night:#0A1230;--night2:#101B45;--sky1:#7CC4FF;--sky2:#2D6BE4;--frame:#FFFFFF;--glow:rgba(124,196,255,.55);
+        --ink:#F4F7FF;--muted:#A9B6D6;--ok:#4BE38A;--warm:#FFD98A;--w:1080px;--h:1350px}
+  html,body{margin:0;background:#000}
+  .b{position:relative;width:var(--w);height:var(--h);overflow:hidden;color:var(--ink);font-family:"Manrope",system-ui,sans-serif;
+     background:radial-gradient(1200px 900px at 78% 34%,var(--night2) 0%,var(--night) 55%,#060B1F 100%)}
+  /* звёзды */
+  .stars{position:absolute;inset:0;background-image:
+     radial-gradient(1.6px 1.6px at 12% 18%,#fff 60%,transparent 62%),radial-gradient(1.2px 1.2px at 30% 9%,#fff 60%,transparent 62%),
+     radial-gradient(1.4px 1.4px at 52% 14%,#fff 60%,transparent 62%),radial-gradient(1px 1px at 68% 6%,#fff 60%,transparent 62%),
+     radial-gradient(1.5px 1.5px at 88% 12%,#fff 60%,transparent 62%),radial-gradient(1px 1px at 22% 40%,#fff 60%,transparent 62%),
+     radial-gradient(1.2px 1.2px at 8% 58%,#fff 60%,transparent 62%),radial-gradient(1px 1px at 94% 48%,#fff 60%,transparent 62%),
+     radial-gradient(1.3px 1.3px at 40% 30%,#fff 60%,transparent 62%),radial-gradient(1px 1px at 60% 44%,#fff 60%,transparent 62%);
+     opacity:.7}
+  /* окно */
+  .win{position:absolute;left:590px;top:110px;width:440px;height:560px;border-radius:26px;background:var(--frame);
+       padding:22px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:22px;
+       box-shadow:0 0 0 12px rgba(255,255,255,.06),0 0 140px 40px var(--glow),0 40px 90px rgba(0,0,0,.6);transform:rotate(-4deg)}
+  .win i{display:block;border-radius:12px;background:linear-gradient(160deg,var(--sky1) 0%,var(--sky2) 70%,#1D4FB8 100%);position:relative;overflow:hidden}
+  .win i::after{content:"";position:absolute;inset:0;background:radial-gradient(120px 60px at 30% 25%,rgba(255,255,255,.55),transparent 70%)}
+  .win i:nth-child(1)::before{content:"";position:absolute;left:18%;top:28%;width:70px;height:26px;border-radius:20px;background:rgba(255,255,255,.85)}
+  .win i:nth-child(2)::before{content:"";position:absolute;left:12%;top:60%;width:110px;height:30px;border-radius:20px;background:rgba(255,255,255,.7)}
+  /* свет на «пол» */
+  .light{position:absolute;left:380px;top:560px;width:900px;height:620px;background:linear-gradient(180deg,rgba(124,196,255,.35),transparent 70%);
+         clip-path:polygon(28% 0,72% 0,100% 100%,0 100%);transform:rotate(-4deg);filter:blur(6px)}
+  .brand{position:absolute;left:72px;top:76px;display:flex;align-items:center;gap:18px}
+  .logo{width:64px;height:64px;border-radius:16px;background:var(--sky2);display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:7px;padding:13px}
+  .logo i{background:#fff;border-radius:3px;display:block}
+  .brand span{font-family:"Unbounded",sans-serif;font-weight:800;font-size:40px;letter-spacing:-.01em}
+  .eyebrow{position:absolute;left:72px;top:170px;width:440px;line-height:1.35;font-weight:700;font-size:21px;letter-spacing:.14em;text-transform:uppercase;color:var(--sky1)}
+  .h1{position:absolute;left:72px;top:620px;width:960px;font-family:"Unbounded",sans-serif;font-weight:900;font-size:92px;line-height:1.0;letter-spacing:-.02em}
+  .h1 em{font-style:normal;color:var(--sky1)}
+  .sub{position:absolute;left:72px;top:920px;font-weight:600;font-size:32px;color:var(--muted)}
+  .sub b{color:var(--ink);font-weight:800}
+  .perks{position:absolute;left:72px;top:992px;display:flex;gap:14px;flex-wrap:wrap;width:960px}
+  .perks span{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;border-radius:999px;border:2px solid rgba(255,255,255,.16);
+     background:rgba(255,255,255,.06);font-weight:700;font-size:23px}
+  .perks span::before{content:"";width:12px;height:12px;border-radius:50%;background:var(--ok);box-shadow:0 0 14px var(--ok)}
+  .foot{position:absolute;left:72px;right:72px;bottom:48px;display:flex;align-items:flex-end;justify-content:space-between}
+  .price{font-family:"Unbounded",sans-serif;font-weight:800;font-size:44px;line-height:1.05}
+  .price small{display:block;font-family:"Manrope";font-weight:600;font-size:24px;color:var(--muted);margin-top:8px}
+  .price em{font-style:normal;color:var(--warm)}
+  .cta{text-align:right}
+  .cta .bot{font-family:"Unbounded",sans-serif;font-weight:800;font-size:38px;color:#fff;background:var(--sky2);padding:20px 30px;border-radius:20px;display:inline-block;box-shadow:0 14px 40px rgba(45,107,228,.5)}
+  .cta small{display:block;margin-top:14px;font-size:23px;font-weight:600;color:var(--muted)}
+  /* story 1080x1920 */
+  .story{--h:1920px}
+  .story .win{left:300px;top:330px;width:480px;height:610px;transform:rotate(-3deg)}
+  .story .light{left:150px;top:820px;transform:rotate(-3deg)}
+  .story .eyebrow{top:190px;left:72px;width:460px}
+  .story .h1{top:1040px;font-size:96px}
+  .story .sub{top:1360px}
+  .story .perks{top:1440px}
+  .story .foot{bottom:90px}
+</style></head><body>
+<div class="b" id="b1">
+  <div class="stars"></div>
+  <div class="light"></div>
+  <div class="win"><i></i><i></i><i></i><i></i></div>
+  <div class="brand"><div class="logo"><i></i><i></i><i></i><i></i></div><span>Окно</span></div>
+  <div class="eyebrow">VPN для своих · iPhone · Android · Windows · Mac</div>
+  <div class="h1">Интернет<br>без границ.<br><em>В 3 клика.</em></div>
+  <div class="sub"><b>Скачать</b> → <b>установить</b> → <b>запустить</b>.</div>
+  <div class="perks"><span>Без рекламы</span><span>Без ограничений</span><span>Минимальная задержка</span><span>ChatGPT и AI работают</span></div>
+  <div class="foot">
+    <div class="price"><em>3 дня бесплатно</em><small>дальше 2 $ в месяц</small></div>
+    <div class="cta"><span class="bot">@OKHO_VPN_BOT</span><small>Telegram · ключ за минуту</small></div>
+  </div>
+</div>
+<div class="b story" id="b2">
+  <div class="stars"></div>
+  <div class="light"></div>
+  <div class="win"><i></i><i></i><i></i><i></i></div>
+  <div class="brand"><div class="logo"><i></i><i></i><i></i><i></i></div><span>Окно</span></div>
+  <div class="eyebrow">VPN для своих · iPhone · Android · Windows · Mac</div>
+  <div class="h1">Интернет<br>без границ.<br><em>В 3 клика.</em></div>
+  <div class="sub"><b>Скачать</b> → <b>установить</b> → <b>запустить</b>.</div>
+  <div class="perks"><span>Без рекламы</span><span>Без ограничений</span><span>Минимальная задержка</span><span>ChatGPT и AI работают</span></div>
+  <div class="foot">
+    <div class="price"><em>3 дня бесплатно</em><small>дальше 2 $ в месяц</small></div>
+    <div class="cta"><span class="bot">@OKHO_VPN_BOT</span><small>Telegram · ключ за минуту</small></div>
+  </div>
+</div>
+</body></html>
