@@ -17,6 +17,9 @@
 - Стабильность страны важнее пары мс: сторож переключает узел только если текущий из другой страны или не отвечает.
 - Тег узла со страной ставит агрегатор (`okno-infra/server/aggregator.py`, карта `fleet/okno_countries.txt`); старые теги `Окно-N-…` = LV.
 
+## Обновления в приложении
+`lib/features/family/update/okno_update.dart` — проверка последнего релиза GitHub при запуске и каждые 12 ч, плашка на главном + строка в настройках. Ссылка на файл по платформе из assets релиза (имена Okno-*.apk/.dmg/.exe/.AppImage — не переименовывать в build.yml).
+
 ## Релиз
 1. `pubspec.yaml` version bump → commit → push → тег `vX.Y.Z-okno` (push тега запускает release.yml; либо `gh workflow run release.yml -f tag=…`).
 2. После релиза: `gh release edit vX.Y.Z-okno --prerelease=false --latest`.
