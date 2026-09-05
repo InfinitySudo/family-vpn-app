@@ -49,6 +49,10 @@
   .hero h1{font-family:var(--disp);font-weight:800;font-size:clamp(30px,6vw,44px);
     line-height:1.1;margin:14px 0 10px;text-wrap:balance}
   .hero p{font-size:19px;color:var(--muted);margin:0 auto;max-width:30ch}
+  .perks{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:16px}
+  .perks span{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:999px;
+    background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);font-weight:600;font-size:14.5px}
+  .perks svg{width:16px;height:16px;color:var(--ok)}
   .ver{display:inline-flex;align-items:center;gap:8px;margin-top:14px;padding:7px 14px;border-radius:999px;
     background:var(--ok-ghost);color:var(--ok);font-weight:600;font-size:14px;text-decoration:none}
   .ver.wait{background:var(--accent-ghost);color:var(--accent)}
@@ -124,6 +128,11 @@
   <div class="hero">
     <h1>Интернет без границ.<br>3 клика — скачать, установить, запустить.</h1>
     <p>Выбери своё устройство ниже. Ничего настраивать не нужно.</p>
+    <div class="perks" aria-label="Что внутри">
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>Без рекламы</span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>Без ограничений</span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>Минимальная задержка</span>
+    </div>
     <a class="ver wait" id="ver" href="https://github.com/InfinitySudo/family-vpn-app/releases/latest">Проверяю последнюю версию…</a>
   </div>
 
