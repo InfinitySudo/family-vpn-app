@@ -165,11 +165,11 @@
         <li>Открой «Окно», нажми большую кнопку. Готово.</li>
       </ol>
       <div class="foot">
-        <a class="btn" data-asset="Okno-Android-arm64.apk" href="https://github.com/InfinitySudo/family-vpn-app/releases/latest/download/Okno-Android-arm64.apk" target="_blank" rel="noopener">
+        <a class="btn" data-asset="Okno-Android-arm64.apk" href="https://constantwrestling.cloud/okno/Okno-Android-arm64.apk" rel="noopener">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>
           Скачать для Android
         </a>
-        <div class="altlink">Старый телефон? <a data-asset="Okno-Android-arm7.apk" href="https://github.com/InfinitySudo/family-vpn-app/releases/latest/download/Okno-Android-arm7.apk" target="_blank" rel="noopener">Скачать облегчённую версию</a></div>
+        <div class="altlink">Старый телефон? <a data-asset="Okno-Android-arm7.apk" href="https://constantwrestling.cloud/okno/Okno-Android-arm7.apk" rel="noopener">Скачать облегчённую версию</a></div>
       </div>
     </article>
 
@@ -203,7 +203,7 @@
         <li>Открой «Окно», нажми большую кнопку.</li>
       </ol>
       <div class="foot">
-        <a class="btn" data-asset="Okno-Windows-Setup-x64.exe" href="https://github.com/InfinitySudo/family-vpn-app/releases/latest/download/Okno-Windows-Setup-x64.exe" target="_blank" rel="noopener">
+        <a class="btn" data-asset="Okno-Windows-Setup-x64.exe" href="https://constantwrestling.cloud/okno/Okno-Windows-Setup-x64.exe" rel="noopener">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>
           Скачать для Windows
         </a>
@@ -221,7 +221,7 @@
         <li>Нажми большую кнопку.</li>
       </ol>
       <div class="foot">
-        <a class="btn" data-asset="Okno-MacOS.dmg" href="https://github.com/InfinitySudo/family-vpn-app/releases/latest/download/Okno-MacOS.dmg" target="_blank" rel="noopener">
+        <a class="btn" data-asset="Okno-MacOS.dmg" href="https://constantwrestling.cloud/okno/Okno-MacOS.dmg" rel="noopener">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>
           Скачать для Mac
         </a>
@@ -255,7 +255,7 @@
     var map = {
       android:{name:"Телефон Android", sub:"Скачай и открой файл — телефон поставит приложение.",
                btn:"Скачать для Android", asset:"Okno-Android-arm64.apk",
-               href:"https://github.com/InfinitySudo/family-vpn-app/releases/latest/download/Okno-Android-arm64.apk",
+               href:"https://constantwrestling.cloud/okno/Okno-Android-arm64.apk",
                ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><line x1="10" y1="18.5" x2="14" y2="18.5"/></svg>'},
       ios:{name:"iPhone или iPad", sub:"Сначала поставь TestFlight из App Store, потом нажми кнопку.",
            btn:"Получить Окно",
@@ -263,11 +263,11 @@
            ic:apple},
       win:{name:"Компьютер Windows", sub:"Скачай файл установки и открой его.",
            btn:"Скачать для Windows", asset:"Okno-Windows-Setup-x64.exe",
-           href:"https://github.com/InfinitySudo/family-vpn-app/releases/latest/download/Okno-Windows-Setup-x64.exe",
+           href:"https://constantwrestling.cloud/okno/Okno-Windows-Setup-x64.exe",
            ic:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5 10.5 4.4v7.1H3zM11.5 4.3 21 3v8.5h-9.5zM3 12.5h7.5v7.1L3 18.5zM11.5 12.5H21V21l-9.5-1.3z"/></svg>'},
       mac:{name:"Компьютер Mac", sub:"Скачай, открой и перетащи «Окно» в «Программы».",
            btn:"Скачать для Mac", asset:"Okno-MacOS.dmg",
-           href:"https://github.com/InfinitySudo/family-vpn-app/releases/latest/download/Okno-MacOS.dmg",
+           href:"https://constantwrestling.cloud/okno/Okno-MacOS.dmg",
            ic:apple}
     };
     var cardId = {android:"c-android", ios:"c-ios", win:"c-win", mac:"c-mac"}[kind];
@@ -278,7 +278,10 @@
       document.getElementById("pickName").textContent=d.name;
       document.getElementById("pickSub").textContent=d.sub;
       document.getElementById("pickIc").innerHTML=d.ic;
-      var b=document.getElementById("pickBtn"); b.textContent=d.btn; b.href=d.href; b.target="_blank"; b.rel="noopener";
+      var b=document.getElementById("pickBtn"); b.textContent=d.btn; b.href=d.href; b.rel="noopener";
+      // Файлы качаем в той же вкладке: на Android (Samsung Internet, Mi Browser) ссылка в новой вкладке
+      // с редиректами GitHub обрывалась сразу после старта. TestFlight — в новой.
+      if(kind==="ios") b.target="_blank";
       if(d.asset) b.setAttribute("data-asset", d.asset);
       document.getElementById("pick").hidden=false;
     }
@@ -301,7 +304,13 @@
         ver.href=rel.html_url||ver.href;
         ver.innerHTML="Последняя версия <b>"+v+"</b>"+(ds?" · "+ds:"");
         var byName={}; (rel.assets||[]).forEach(function(a){ byName[a.name]=a.browser_download_url; });
-        document.querySelectorAll("[data-asset]").forEach(function(a){ var u=byName[a.getAttribute("data-asset")]; if(u) a.href=u; });
+        // Зеркало на нашем домене — основной путь (прямой файл, без редиректов GitHub, доступно из РФ).
+        // Если зеркала нет (не выкатили) — ссылки на GitHub.
+        fetch("https://constantwrestling.cloud/okno/Okno-Android-arm64.apk",{method:"HEAD"}).then(function(r){ if(!r.ok) throw 0; })
+          .catch(function(){
+            document.querySelectorAll("a[href^='https://constantwrestling.cloud/okno/']").forEach(function(a){
+              var name=a.href.split("/").pop(); var u=byName[name]; if(u) a.href=u; });
+          });
         var body=(rel.body||"").replace(/\r/g,"").replace(/^#+\s*/gm,"").replace(/\*\*/g,"").replace(/^- /gm,"• ").trim();
         if(body){
           var lines=body.split("\n").filter(function(l){return l.trim();}).slice(0,6).join("\n");
