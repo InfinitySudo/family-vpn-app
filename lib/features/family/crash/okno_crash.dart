@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:hiddify/core/app_info/app_info_provider.dart';
 import 'package:hiddify/core/logger/logger.dart';
+import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -17,10 +18,10 @@ import 'package:path_provider/path_provider.dart';
 ///  - ошибки Dart (FlutterError, PlatformDispatcher, зона) пишутся в
 ///    `<appSupport>/okno_crash.log`; на Android туда же пишет нативный
 ///    обработчик (Application.kt), так что Kotlin-падения тоже видны;
-///  - при каждом «подключить» ставится метка `okno_session.txt`, при исходе
-///    (подключились / отключились) снимается. Если при запуске метка стоит —
-///    прошлый раз процесс умер посреди подключения (в т.ч. нативный SIGSEGV
-///    ядра, который никто не ловит) → это тоже повод для отчёта;
+///  - метка `okno_session.txt`: «connecting» при нажатии, «connected» когда
+///    подключились; снимается ТОЛЬКО при отключении кнопкой или штатном выходе.
+///    Если при запуске метка стоит — прошлый процесс умер, пока Окно работало
+///    (нативное падение ядра или система убила приложение) → отчёт с logcat;
 ///  - отчёт = версия, ОС, crash-лог, метка, хвосты app.log/box.log и
 ///    stderr.log/stderr2.log (туда Go-ядро пишет panic) → POST на Ригу
 ///    (/okno/crash), Артёму приходит в TG. Отправляется само, плашка на
@@ -81,6 +82,19 @@ class OknoCrash {
     } catch (_) {}
   }
 
+  /// Android: logcat собственного процесса (свой UID виден без прав; строки прошлого процесса
+  /// с тем же UID тоже — там «FATAL EXCEPTION», «Process … has died», причины убийства).
+  static Future<String> _logcat() async {
+    if (!Platform.isAndroid) return "";
+    try {
+      final r = await Process.run("logcat", ["-d", "-v", "time", "-t", "400"]).timeout(const Duration(seconds: 8));
+      final out = (r.stdout as String? ?? "");
+      return out.length > 40000 ? out.substring(out.length - 40000) : out;
+    } catch (e) {
+      return "(logcat: $e)";
+    }
+  }
+
   /// Есть ли что отправлять: crash-лог или зависшая метка прошлой сессии.
   static ({bool crash, String session}) pending() {
     final c = _crashFile;
@@ -123,6 +137,7 @@ class OknoCrash {
       "box_log": wd == null ? "" : _tail(File("${wd.path}/box.log")),
       "stderr": wd == null ? "" : _tail(File("${wd.path}/stderr.log"), 120),
       "stderr2": wd == null ? "" : _tail(File("${wd.path}/stderr2.log"), 120),
+      "logcat": await _logcat(),
     };
     final body = utf8.encode(jsonEncode(report));
     for (final url in _endpoints) {
@@ -150,8 +165,20 @@ class OknoCrash {
 
 /// Состояние плашки: null — нечего показывать; true — отправлен; false — не удалось.
 final oknoCrashReportProvider = FutureProvider<bool?>((ref) async {
-  final p = OknoCrash.pending();
+  var p = OknoCrash.pending();
   if (!p.crash && p.session.isEmpty) return null;
+  if (!p.crash && p.session.startsWith("connected")) {
+    // Метка «был подключён» без crash-лога: возможно, VPN-служба жива, а систему просто
+    // закрыла экран приложения (это норма). Ждём статус ядра: подключено → не сбой.
+    await Future<void>.delayed(const Duration(seconds: 6));
+    final st = ref.read(connectionNotifierProvider).valueOrNull;
+    if (st != null && st.isConnected) {
+      OknoCrash.mark("connected");
+      return null;
+    }
+    p = OknoCrash.pending();
+    if (!p.crash && p.session.isEmpty) return null;
+  }
   final version = (await ref.read(appInfoProvider.future)).version;
   return OknoCrash.send(appVersion: version);
 });

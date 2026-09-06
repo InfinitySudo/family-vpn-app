@@ -33,8 +33,10 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
 
     listenSelf((previous, next) async {
       if (previous == next) return;
-      // Окно: метка «подключаемся» снимается, когда есть исход (см. okno_crash.dart)
-      if (next case AsyncData(value: Connected()) || AsyncData(value: Disconnected())) OknoCrash.mark("");
+      // Окно: метка сессии (см. okno_crash.dart): подключились → «connected»; отключились
+      // (кнопкой или с ошибкой) → снять. Пока метка стоит, а процесса нет — значит, его убили.
+      if (next case AsyncData(value: Connected())) OknoCrash.mark("connected");
+      if (next case AsyncData(value: Disconnected())) OknoCrash.mark("");
       if (previous case AsyncData(:final value) when !value.isConnected) {
         if (next case AsyncData(value: final Connected _)) {
           await ref.read(hapticServiceProvider.notifier).heavyImpact();
