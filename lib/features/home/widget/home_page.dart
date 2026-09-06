@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hiddify/features/family/country/country_picker.dart';
 import 'package:hiddify/features/family/crash/okno_crash.dart';
 import 'package:hiddify/features/family/family_no_server_notice.dart';
+import 'package:hiddify/features/family/guard/okno_background.dart';
 import 'package:hiddify/features/family/guard/okno_vpn_guard.dart';
 import 'package:hiddify/features/family/update/okno_update.dart';
 import 'package:hiddify/features/home/widget/connection_button.dart';
@@ -116,6 +117,8 @@ class HomePage extends HookConsumerWidget {
                         // Окно: плашка «доступна новая версия» (проверка при запуске и каждые 12 ч)
                         // Окно: «прошлый раз закрылось с ошибкой — отчёт отправлен»
                         const SliverToBoxAdapter(child: CrashReportBanner()),
+                        // Окно: Android — разрешить работу в фоне (MIUI/Samsung убивают VPN → «выкинуло»)
+                        const SliverToBoxAdapter(child: BackgroundPermissionBanner()),
                         const SliverToBoxAdapter(child: UpdateBanner()),
                         const SliverToBoxAdapter(child: UpdateHint()),
                         const SliverFillRemaining(

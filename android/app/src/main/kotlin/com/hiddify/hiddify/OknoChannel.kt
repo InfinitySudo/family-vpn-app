@@ -209,6 +209,14 @@ class OknoChannel : FlutterPlugin, MethodChannel.MethodCallHandler {
                     result.success(installApk(context, path))
                 }
                 "updates_dir" -> result.success(updatesDir(context).absolutePath)
+                // Производитель/модель — для подсказок «разрешите работу в фоне» (Xiaomi/Samsung/Huawei убивают VPN)
+                "device_info" -> result.success(mapOf(
+                    "manufacturer" to Build.MANUFACTURER, "brand" to Build.BRAND, "model" to Build.MODEL,
+                    "sdk" to Build.VERSION.SDK_INT, "release" to Build.VERSION.RELEASE,
+                    "miui" to (Build.MANUFACTURER.equals("Xiaomi", true) || Build.BRAND.equals("Redmi", true) || Build.BRAND.equals("POCO", true)),
+                ))
+                // Экран автозапуска (MIUI и др.) — best effort, иначе настройки приложения
+                "open_autostart" -> result.success(openAutostart(context))
                 "uninstall" -> {
                     val pkg = call.argument<String>("package") ?: ""
                     // системный диалог удаления — пользователь подтверждает сам
@@ -219,6 +227,23 @@ class OknoChannel : FlutterPlugin, MethodChannel.MethodCallHandler {
         } catch (e: Exception) {
             result.error("OKNO", e.message, null)
         }
+    }
+
+    private fun openAutostart(ctx: Context): Boolean {
+        val candidates = listOf(
+            Intent("miui.intent.action.OP_AUTO_START").addCategory(Intent.CATEGORY_DEFAULT),
+            Intent().setClassName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"),
+            Intent().setClassName("com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity"),
+            Intent().setClassName("com.samsung.android.lool", "com.samsung.android.sm.battery.ui.BatteryActivity"),
+            Intent().setClassName("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity"),
+            Intent().setClassName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"),
+        )
+        for (i in candidates) {
+            try {
+                if (ctx.packageManager.resolveActivity(i, 0) != null && startSafely(i)) return true
+            } catch (_: Exception) {}
+        }
+        return startSafely(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${ctx.packageName}")))
     }
 
     private fun updatesDir(ctx: Context): File = File(ctx.filesDir, "updates").apply { mkdirs() }
