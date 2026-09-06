@@ -209,6 +209,9 @@ class OknoChannel : FlutterPlugin, MethodChannel.MethodCallHandler {
                     result.success(installApk(context, path))
                 }
                 "updates_dir" -> result.success(updatesDir(context).absolutePath)
+                // SHA-256 сертификата, которым подписана установленная сборка (сравнить с ключом релиза:
+                // до 1.0.19 CI подписывал каждую сборку случайным debug-ключом → «конфликтует с другим приложением»)
+                "signature_sha256" -> result.success(signatureSha256(context))
                 // Производитель/модель — для подсказок «разрешите работу в фоне» (Xiaomi/Samsung/Huawei убивают VPN)
                 "device_info" -> result.success(mapOf(
                     "manufacturer" to Build.MANUFACTURER, "brand" to Build.BRAND, "model" to Build.MODEL,
@@ -227,6 +230,21 @@ class OknoChannel : FlutterPlugin, MethodChannel.MethodCallHandler {
         } catch (e: Exception) {
             result.error("OKNO", e.message, null)
         }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun signatureSha256(ctx: Context): String = try {
+        val pm = ctx.packageManager
+        val sigs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val info = pm.getPackageInfo(ctx.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+            info.signingInfo?.apkContentsSigners ?: emptyArray()
+        } else {
+            pm.getPackageInfo(ctx.packageName, PackageManager.GET_SIGNATURES).signatures ?: emptyArray()
+        }
+        val md = java.security.MessageDigest.getInstance("SHA-256")
+        sigs.firstOrNull()?.let { md.digest(it.toByteArray()).joinToString(":") { b -> "%02X".format(b) } } ?: ""
+    } catch (e: Exception) {
+        ""
     }
 
     private fun openAutostart(ctx: Context): Boolean {

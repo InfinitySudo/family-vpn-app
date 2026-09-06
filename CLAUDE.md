@@ -38,6 +38,9 @@ GitHub Actions берёт `vars.SUBSCRIPTION_URL`, Codemagic (iOS/macOS) — п�
 - Linux-сборка локально (`make linux-amd64-prepare && flutter build linux`) + Xvfb → скриншоты экранов (`scripts/preview.sh`) → Артёму в TG/чат. UI-правки показывать картинкой до CI.
 - CI-сборки = **бета** (prerelease, приложения их не видят). Сторож шлёт в TG ссылки на APK/dmg/TestFlight. После «выкатываем» → `bash /root/okno-infra/server/okno_release_go.sh vX.Y.Z-okno` (latest).
 
+## Подпись Android (с 1.0.19)
+CI подписывает release только если есть секрет `ANDROID_SIGNING_KEY` (+ `_STORE_PASSWORD`, `_KEY_PASSWORD`, `_KEY_ALIAS`); без них — случайный debug-ключ на каждую сборку → «конфликтует с другим приложением» при установке поверх. Ключ: `/root/secrets/okno-release.jks` + `okno-release.env` (НЕ терять — иначе все пользователи переустанавливают). SHA-256 сертификата зашит в `okno_update.dart` (`releaseCertSha256`): старые debug-копии получают подсказку «удалите и поставьте заново».
+
 ## Релиз
 1. `pubspec.yaml` version bump → commit → push → тег `vX.Y.Z-okno` (push тега запускает release.yml; либо `gh workflow run release.yml -f tag=…`).
 2. Сторож `release_watch.py` (запуск ТОЛЬКО с `--setenv=GITHUB_TOKEN="$GITHUB_TOKEN"`) оставляет релиз бетой; latest — `okno_release_go.sh` по слову Артёма (или `OKNO_AUTO_LATEST=1` сторожу).

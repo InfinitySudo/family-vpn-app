@@ -268,9 +268,23 @@ class OknoUpdateNotifier extends StateNotifier<AsyncValue<OknoUpdateInfo?>> {
   /// Что показать под плашкой (ошибка / просьба разрешить установку).
   final ValueNotifier<String?> hint = ValueNotifier(null);
 
+  /// Ключ релиза (с 1.0.19; /root/secrets/okno-release.jks). Сборки до него подписаны случайными
+  /// debug-ключами CI — поверх них установить релизный APK нельзя, только удалить и поставить заново.
+  static const releaseCertSha256 = "CB:A8:FA:A9:68:4F:5C:DC:7B:45:C0:EF:29:62:99:E8:8B:37:19:F8:E8:29:AE:09:18:CB:45:5C:34:F1:14:2B";
+
   Future<bool> installAndroid(OknoUpdateInfo info) async {
     if (progress.value != null && progress.value! < 1) return false; // уже качаем
     hint.value = null;
+    try {
+      final sig = await _okno.invokeMethod<String>("signature_sha256") ?? "";
+      if (sig.isNotEmpty && sig != releaseCertSha256) {
+        hint.value = "Эта копия «Окна» подписана старым ключом, обновить поверх нельзя (один раз). "
+            "Удалите «Окно» и поставьте заново со страницы загрузки — дальше будет обновляться само.";
+        return UriUtils.tryLaunch(Uri.parse("https://infinitysudo.github.io/family-vpn-app/"));
+      }
+    } on MissingPluginException {
+      // старая нативная часть — без проверки
+    } catch (_) {}
     try {
       final dir = Directory(await _okno.invokeMethod<String>("updates_dir") ?? "");
       if (!dir.existsSync()) dir.createSync(recursive: true);
