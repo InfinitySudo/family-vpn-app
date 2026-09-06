@@ -5,6 +5,7 @@ import 'package:hiddify/core/app_info/app_info_provider.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hiddify/features/family/country/country_picker.dart';
+import 'package:hiddify/features/family/crash/okno_crash.dart';
 import 'package:hiddify/features/family/family_no_server_notice.dart';
 import 'package:hiddify/features/family/guard/okno_vpn_guard.dart';
 import 'package:hiddify/features/family/update/okno_update.dart';
@@ -113,6 +114,8 @@ class HomePage extends HookConsumerWidget {
                         // нужна, чтобы работали ChatGPT и прочие AI-сервисы.
                         const SliverToBoxAdapter(child: CountryCard()),
                         // Окно: плашка «доступна новая версия» (проверка при запуске и каждые 12 ч)
+                        // Окно: «прошлый раз закрылось с ошибкой — отчёт отправлен»
+                        const SliverToBoxAdapter(child: CrashReportBanner()),
                         const SliverToBoxAdapter(child: UpdateBanner()),
                         const SliverToBoxAdapter(child: UpdateHint()),
                         const SliverFillRemaining(

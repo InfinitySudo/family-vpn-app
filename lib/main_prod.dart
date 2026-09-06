@@ -1,11 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'dart:async';
+
 import 'package:hiddify/bootstrap.dart';
+import 'package:hiddify/features/family/crash/okno_crash.dart';
 import 'package:hiddify/core/model/environment.dart';
 
 Future<void> main() async {
+  // Окно: отчёт о сбое — ловим ошибки Dart/Flutter с самого старта (см. okno_crash.dart)
+  await runZonedGuarded(_main, OknoCrash.onZoneError);
+}
+
+Future<void> _main() async {
   final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  await OknoCrash.install();
 
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(

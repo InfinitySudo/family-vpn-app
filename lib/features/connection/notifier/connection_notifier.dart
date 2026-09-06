@@ -8,6 +8,7 @@ import 'package:hiddify/features/connection/data/connection_data_providers.dart'
 import 'package:hiddify/features/connection/data/connection_repository.dart';
 import 'package:hiddify/features/connection/model/connection_failure.dart';
 import 'package:hiddify/features/connection/model/connection_status.dart';
+import 'package:hiddify/features/family/crash/okno_crash.dart';
 import 'package:hiddify/features/family/guard/okno_vpn_guard.dart';
 import 'package:hiddify/features/profile/model/profile_entity.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
@@ -32,6 +33,8 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
 
     listenSelf((previous, next) async {
       if (previous == next) return;
+      // Окно: метка «подключаемся» снимается, когда есть исход (см. okno_crash.dart)
+      if (next case AsyncData(value: Connected()) || AsyncData(value: Disconnected())) OknoCrash.mark("");
       if (previous case AsyncData(:final value) when !value.isConnected) {
         if (next case AsyncData(value: final Connected _)) {
           await ref.read(hapticServiceProvider.notifier).heavyImpact();
@@ -75,6 +78,7 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
         case Disconnected():
           await haptic.lightImpact();
           await ref.read(Preferences.startedByUser.notifier).update(true);
+          OknoCrash.mark("connecting");
           await _connect();
         case Connected():
           // default:

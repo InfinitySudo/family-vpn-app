@@ -23,6 +23,18 @@ class Application : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        // Окно: нативные падения (Kotlin/Java, любой поток) → filesDir/okno_crash.log,
+        // Dart при следующем запуске отправит отчёт (okno_crash.dart). Go-panic ядра сюда не попадёт —
+        // его stderr уже перенаправлен в stderr.log/stderr2.log, они уходят в отчёте хвостами.
+        val prev = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { t, e ->
+            try {
+                val f = java.io.File(filesDir, "okno_crash.log")
+                f.appendText("\n=== native ${java.util.Date()} thread=${t.name} ===\n${android.util.Log.getStackTraceString(e)}\n")
+            } catch (_: Exception) {}
+            prev?.uncaughtException(t, e)
+        }
+
         Seq.setContext(this)
 
         registerReceiver(AppChangeReceiver(), IntentFilter().apply {
