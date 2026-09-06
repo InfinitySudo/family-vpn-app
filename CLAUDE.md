@@ -34,6 +34,7 @@ Android держит один туннель: старый клиент (Happ и
 GitHub Actions берёт `vars.SUBSCRIPTION_URL`, Codemagic (iOS/macOS) — переменную группы `okno` в своём кабинете (API `/apps/<id>/variables`, менять = DELETE + POST, PUT не работает). 06.09 в Codemagic лежал `217.60.2.82:2096/sub/…` (подписка самого x-ui: один узел, без стран и HY2) → на iPhone/Mac «только Латвия». Оба должны быть = агрегатор `http://46.8.238.102:2097/okno/38fa3eb3adb9258d`.
 
 ## Проверка ДО сборки (с 06.09 — правило Артёма: «сначала смотрю, потом выкатываем»)
+- **Сборки CI — только по слову Артёма и одной пачкой.** Codemagic (iOS/Mac) бесплатен на 500 мин/мес, платить он не будет → iOS/Mac собирать ТОЛЬКО под выкатывание. Правки проверять на dev-экране и `flutter analyze`, Android при нужде одной GH-сборкой.
 - Flutter стоит на VPS (`/opt/flutter`, PATH): `flutter analyze` ловит ошибки компиляции за секунды — гонять ПЕРЕД каждым коммитом.
 - Linux-сборка локально (`make linux-amd64-prepare && flutter build linux`) + Xvfb → скриншоты экранов (`scripts/preview.sh`) → Артёму в TG/чат. UI-правки показывать картинкой до CI.
 - CI-сборки = **бета** (prerelease, приложения их не видят). Сторож шлёт в TG ссылки на APK/dmg/TestFlight. После «выкатываем» → `bash /root/okno-infra/server/okno_release_go.sh vX.Y.Z-okno` (latest).
