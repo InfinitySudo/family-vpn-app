@@ -1,6 +1,7 @@
 import 'package:dartx/dartx.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:hiddify/features/connection/model/connection_failure.dart';
+import 'package:hiddify/features/family/guard/okno_vpn_guard.dart';
 import 'package:hiddify/hiddifycore/generated/v2/hcore/hcore.pb.dart';
 
 part 'core_status.freezed.dart';
@@ -81,6 +82,9 @@ sealed class CoreStatus with _$CoreStatus {
 
         CoreAlert.requestVPNPermission => ConnectionFailure.missingVpnPermission(message),
 
+        // Окно: маркер для ConnectionNotifier — показать экран «Мешает другой VPN», не общий диалог
+        CoreAlert.foreignVpn => ConnectionFailure.unexpected(OknoForeignVpnBlock(OknoForeignVpnInfo.fromMap(_pendingForeignVpn))),
+
         CoreAlert.startCommandServer ||
         CoreAlert.createService ||
         CoreAlert.startService ||
@@ -95,7 +99,14 @@ sealed class CoreStatus with _$CoreStatus {
   }
 }
 
+/// Окно: подробности последней блокировки сторожем (заполняет core_interface_mobile перед
+/// CoreStatus.stopped(alert: foreignVpn); freezed-статус без codegen не расширить).
+Map<dynamic, dynamic>? _pendingForeignVpn;
+void setPendingForeignVpn(Map<dynamic, dynamic>? m) => _pendingForeignVpn = m;
+
 enum CoreAlert {
+  /// Окно: подключение остановлено сторожем — мешает чужой VPN (см. okno_vpn_guard.dart)
+  foreignVpn,
   requestVPNPermission,
   requestNotificationPermission,
   emptyConfiguration,

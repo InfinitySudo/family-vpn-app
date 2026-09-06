@@ -357,6 +357,15 @@ class BoxService(
     }
 
     fun onRevoke() {
+        // Окно: туннель отдан другому VPN-приложению. Раньше просто молча гасли («выкинуло»).
+        // Молча вернуть его нельзя: после prepare() чужого приложения наше согласие на VPN
+        // отозвано, establish() упадёт — нужен человек и диалог системы. Поэтому: событие в Dart
+        // + уведомление с объяснением, и только потом останавливаемся.
+        try {
+            com.hiddify.hiddify.OknoChannel.onRevokedByOtherVpn(service)
+        } catch (e: Exception) {
+            Log.w(TAG, "onRevoke notify failed: ${e.message}")
+        }
         stopService()
     }
 

@@ -8,6 +8,7 @@ import 'package:hiddify/features/connection/data/connection_data_providers.dart'
 import 'package:hiddify/features/connection/data/connection_repository.dart';
 import 'package:hiddify/features/connection/model/connection_failure.dart';
 import 'package:hiddify/features/connection/model/connection_status.dart';
+import 'package:hiddify/features/family/guard/okno_vpn_guard.dart';
 import 'package:hiddify/features/profile/model/profile_entity.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
 import 'package:hiddify/hiddifycore/init_signal.dart';
@@ -138,6 +139,12 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
       ConnectionFailure err,
     ) async {
       loggy.warning("error connecting", err);
+      // Окно: сторож чужих VPN — экран с кнопками вместо общего диалога ошибки
+      if (err case UnexpectedConnectionFailure(error: final OknoForeignVpnBlock block)) {
+        await ref.read(Preferences.startedByUser.notifier).update(false);
+        ref.read(oknoForeignVpnSignal.notifier).state = block;
+        return;
+      }
       //Go err is not normal object to see the go errors are string and need to be dumped
       await ref
           .read(dialogNotifierProvider.notifier)

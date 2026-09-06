@@ -164,6 +164,17 @@ public class MethodHandler: NSObject, FlutterPlugin {
         case "stop":
             VPNManager.shared.disconnect()
             result(true)
+        // Окно: сторож чужих VPN (см. lib/features/family/guard/okno_vpn_guard.dart).
+        // На iOS активна только одна конфигурация и наш On-Demand её держит, поэтому
+        // здесь лишь факт «чужой туннель есть, наш выключен» — без списка приложений.
+        case "okno_foreign_vpn":
+            let ours = VPNManager.shared.state == .connected || VPNManager.shared.state == .connecting
+            result([
+                "active": VPNManager.shared.isAnyVPNConnected && !ours,
+                "apps": [],
+                "always_on_self": false,
+                "always_on_foreign": false,
+            ] as [String: Any])
         case "reset":
             VPNManager.shared.reset()
             result(true)

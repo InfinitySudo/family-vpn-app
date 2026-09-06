@@ -6,6 +6,7 @@ import 'package:hiddify/core/localization/translations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hiddify/features/family/country/country_picker.dart';
 import 'package:hiddify/features/family/family_no_server_notice.dart';
+import 'package:hiddify/features/family/guard/okno_vpn_guard.dart';
 import 'package:hiddify/features/family/update/okno_update.dart';
 import 'package:hiddify/features/home/widget/connection_button.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
@@ -68,7 +69,9 @@ class HomePage extends HookConsumerWidget {
           ),
         ],
       ),
-      body: Container(
+      // Окно: сторож чужих VPN — экран «Мешает другой VPN» по сигналу подключения / перехвату
+      body: OknoVpnGuardListener(
+        child: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
             image: const AssetImage('assets/images/world_map.png'), // Replace with your image path
@@ -143,6 +146,7 @@ class HomePage extends HookConsumerWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

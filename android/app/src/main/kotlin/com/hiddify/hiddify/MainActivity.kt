@@ -30,6 +30,7 @@ class MainActivity : FlutterFragmentActivity(), ServiceConnection.Callback {
     companion object {
         private const val TAG = "ANDROID/MyActivity"
         lateinit var instance: MainActivity
+        fun instanceOrNull(): MainActivity? = if (::instance.isInitialized) instance else null
 
         const val VPN_PERMISSION_REQUEST_CODE = 1001
         const val NOTIFICATION_PERMISSION_REQUEST_CODE = 1010
@@ -50,6 +51,7 @@ class MainActivity : FlutterFragmentActivity(), ServiceConnection.Callback {
         flutterEngine.plugins.add(PlatformSettingsHandler())
         flutterEngine.plugins.add(EventHandler())
         flutterEngine.plugins.add(LogHandler())
+        flutterEngine.plugins.add(OknoChannel())
 //        flutterEngine.plugins.add(GroupsChannel(lifecycleScope))
 //        flutterEngine.plugins.add(ActiveGroupsChannel(lifecycleScope))
 //        flutterEngine.plugins.add(StatsChannel(lifecycleScope))

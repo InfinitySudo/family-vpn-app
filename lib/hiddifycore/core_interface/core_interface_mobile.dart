@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:grpc/grpc.dart';
 import 'package:hiddify/core/model/directories.dart';
 import 'package:hiddify/core/utils/laststeam.dart';
+import 'package:hiddify/features/family/guard/okno_vpn_guard.dart';
 import 'package:hiddify/hiddifycore/core_interface/core_interface.dart';
 import 'package:hiddify/hiddifycore/core_interface/mtls_channel_cred.dart';
 import 'package:hiddify/hiddifycore/generated/v2/hcore/hcore_service.pbgrpc.dart';
@@ -108,9 +109,36 @@ class CoreInterfaceMobile extends CoreInterface with InfraLogger {
     // сколько угодно, и только потом старт службы с таймером ожидания. Иначе первое нажатие на свежей
     // установке заканчивалось «Непредвиденный сбой», а второе работало.
     if (Platform.isAndroid) {
+      // Окно: сторож чужих VPN — если сейчас работает другой туннель или чужое приложение
+      // назначено «постоянным VPN», согласие системы и старт службы обречены. Вместо
+      // «Непредвиденный сбой» — экран с кнопками (что выключить/удалить).
+      final block = await OknoVpnGuard.preflightBlock();
+      if (block != null) {
+        loggy.warning("foreign VPN blocks connection: active=${block.active} alwaysOn=${block.alwaysOnPackage}");
+        setPendingForeignVpn({
+          "active": block.active,
+          "apps": [for (final a in block.apps) {"package": a.package, "label": a.label}],
+          "always_on_package": block.alwaysOnPackage,
+          "always_on_self": block.alwaysOnSelf,
+          "always_on_foreign": block.alwaysOnForeign,
+        });
+        return const CoreStatus.stopped(alert: CoreAlert.foreignVpn, message: "мешает другой VPN");
+      }
       try {
         final granted = await methodChannel.invokeMethod<bool>("prepare");
         if (granted == false) {
+          // отказ в согласии на VPN при чужом «постоянном VPN» — это тоже он
+          final again = await OknoVpnGuard.check();
+          if (again.alwaysOnForeign) {
+            setPendingForeignVpn({
+              "active": again.active,
+              "apps": [for (final a in again.apps) {"package": a.package, "label": a.label}],
+              "always_on_package": again.alwaysOnPackage,
+              "always_on_self": again.alwaysOnSelf,
+              "always_on_foreign": again.alwaysOnForeign,
+            });
+            return const CoreStatus.stopped(alert: CoreAlert.foreignVpn, message: "чужой постоянный VPN");
+          }
           return const CoreStatus.stopped(
             alert: CoreAlert.requestVPNPermission,
             message: "Разрешите «Окну» VPN-подключение (и уведомления) и нажмите кнопку ещё раз.",

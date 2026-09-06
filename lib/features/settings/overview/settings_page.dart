@@ -7,6 +7,7 @@ import 'package:hiddify/core/router/go_router/helper/active_breakpoint_notifier.
 import 'package:hiddify/features/family/country/country_picker.dart';
 import 'package:hiddify/features/family/country/okno_country.dart';
 import 'package:hiddify/features/family/country/okno_country_notifier.dart';
+import 'package:hiddify/features/family/guard/okno_vpn_guard.dart';
 import 'package:hiddify/features/family/update/okno_update.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
 import 'package:hiddify/features/settings/notifier/config_option/config_option_notifier.dart';
@@ -166,6 +167,8 @@ class SettingsPage extends HookConsumerWidget {
               );
             },
           ),
+          // Окно: постоянный VPN / чужие VPN-приложения
+          const AlwaysOnVpnTile(),
           // Окно: обновления приложения
           const UpdateSettingsTile(),
           SettingsSection(
