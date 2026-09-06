@@ -22,7 +22,8 @@ const String familyProfileName = "Окно";
 const String familyGithubFallback = "https://raw.githubusercontent.com/InfinitySudo/family-vpn-app/sub/sub.txt";
 
 List<String> familySubscriptionFallbacks() => [
-      for (final u in Environment.subscriptionFallbacks.split(","))
+      // разделитель «;» (flutter_distributor режет --build-dart-define по запятым), запятую тоже принимаем
+      for (final u in Environment.subscriptionFallbacks.split(RegExp(r"[;,]")))
         if (u.trim().isNotEmpty) u.trim(),
       familyGithubFallback,
     ];
