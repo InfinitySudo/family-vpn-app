@@ -32,8 +32,13 @@ Android держит один туннель: старый клиент (Happ и
 ## ⚠ Адрес подписки в сборках
 GitHub Actions берёт `vars.SUBSCRIPTION_URL`, Codemagic (iOS/macOS) — переменную группы `okno` в своём кабинете (API `/apps/<id>/variables`, менять = DELETE + POST, PUT не работает). 06.09 в Codemagic лежал `217.60.2.82:2096/sub/…` (подписка самого x-ui: один узел, без стран и HY2) → на iPhone/Mac «только Латвия». Оба должны быть = агрегатор `http://46.8.238.102:2097/okno/38fa3eb3adb9258d`.
 
+## Проверка ДО сборки (с 06.09 — правило Артёма: «сначала смотрю, потом выкатываем»)
+- Flutter стоит на VPS (`/opt/flutter`, PATH): `flutter analyze` ловит ошибки компиляции за секунды — гонять ПЕРЕД каждым коммитом.
+- Linux-сборка локально (`make linux-amd64-prepare && flutter build linux`) + Xvfb → скриншоты экранов (`scripts/preview.sh`) → Артёму в TG/чат. UI-правки показывать картинкой до CI.
+- CI-сборки = **бета** (prerelease, приложения их не видят). Сторож шлёт в TG ссылки на APK/dmg/TestFlight. После «выкатываем» → `bash /root/okno-infra/server/okno_release_go.sh vX.Y.Z-okno` (latest).
+
 ## Релиз
 1. `pubspec.yaml` version bump → commit → push → тег `vX.Y.Z-okno` (push тега запускает release.yml; либо `gh workflow run release.yml -f tag=…`).
-2. После релиза: `gh release edit vX.Y.Z-okno --prerelease=false --latest`.
+2. Сторож `release_watch.py` (запуск ТОЛЬКО с `--setenv=GITHUB_TOKEN="$GITHUB_TOKEN"`) оставляет релиз бетой; latest — `okno_release_go.sh` по слову Артёма (или `OKNO_AUTO_LATEST=1` сторожу).
 3. iOS/macOS — Codemagic (appId `6a99eb3c3d7334c2a56148d5`, workflows `ios-testflight`, `macos-notarize`), запуск POST /builds по API; Mac-dmg из Codemagic заливать в релиз поверх GH-сборки (ядро 4.1.0).
 4. Страница загрузки для родных ведёт на `releases/latest`.
