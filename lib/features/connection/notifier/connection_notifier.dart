@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'package:hiddify/core/app_info/app_info_provider.dart';
 import 'package:hiddify/core/haptic/haptic_service.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/core/preferences/general_preferences.dart';
@@ -156,6 +158,8 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
           .read(dialogNotifierProvider.notifier)
           .showCustomAlertFromErr(err.present(ref.read(translationsProvider).requireValue));
       loggy.warning(err);
+      // Окно: неудачное подключение («Непредвиденный сбой») → логи разработчику сами (не чаще раза в 10 мин)
+      unawaited(_autoReport("connect failed: ${err.toString().substring(0, err.toString().length > 400 ? 400 : err.toString().length)}"));
       if (err.toString().contains("panic")) {
         await Sentry.captureException(Exception(err.toString()));
       }
@@ -163,6 +167,20 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
       state = AsyncError(err, StackTrace.current);
     }).run();
   }
+
+  Future<void> _autoReport(String note) async {
+    try {
+      final version = (await ref.read(appInfoProvider.future)).version;
+      final now = DateTime.now();
+      if (_lastAuto != null && now.difference(_lastAuto!) < const Duration(minutes: 10)) return;
+      _lastAuto = now;
+      await OknoCrash.send(appVersion: version, note: note);
+    } catch (e) {
+      loggy.debug("auto report failed: $e");
+    }
+  }
+
+  DateTime? _lastAuto;
 
   Future<void> _disconnect() async {
     await _connectionRepo.disconnect().mapLeft((err) {

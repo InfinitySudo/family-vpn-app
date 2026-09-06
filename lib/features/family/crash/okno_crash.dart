@@ -183,6 +183,55 @@ final oknoCrashReportProvider = FutureProvider<bool?>((ref) async {
   return OknoCrash.send(appVersion: version);
 });
 
+/// Ручной отчёт из настроек и автоматический при неудачном подключении (не чаще раза в 10 мин).
+DateTime? _lastAutoReport;
+
+Future<bool> oknoSendReport(WidgetRef ref, {required String note, bool auto = false}) async {
+  if (auto) {
+    final now = DateTime.now();
+    if (_lastAutoReport != null && now.difference(_lastAutoReport!) < const Duration(minutes: 10)) return false;
+    _lastAutoReport = now;
+  }
+  final version = (await ref.read(appInfoProvider.future)).version;
+  return OknoCrash.send(appVersion: version, note: note);
+}
+
+/// Строка в настройках: «Сообщить о проблеме» — логи уходят разработчику одним нажатием.
+class ReportProblemTile extends ConsumerStatefulWidget {
+  const ReportProblemTile({super.key});
+
+  @override
+  ConsumerState<ReportProblemTile> createState() => _ReportProblemTileState();
+}
+
+class _ReportProblemTileState extends ConsumerState<ReportProblemTile> {
+  bool busy = false;
+  String? result;
+
+  Future<void> _send() async {
+    setState(() { busy = true; result = null; });
+    final ok = await oknoSendReport(ref, note: "ручной отчёт из настроек");
+    if (!mounted) return;
+    setState(() {
+      busy = false;
+      result = ok ? "отправлено, спасибо" : "не удалось отправить — проверьте связь и попробуйте ещё раз";
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.outgoing_mail),
+      title: const Text("Сообщить о проблеме"),
+      subtitle: Text(result ?? "логи приложения уйдут разработчику одним нажатием"),
+      trailing: busy
+          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+          : const Icon(Icons.send_rounded),
+      onTap: busy ? null : _send,
+    );
+  }
+}
+
 class CrashReportBanner extends ConsumerWidget {
   const CrashReportBanner({super.key});
 
