@@ -5,7 +5,7 @@
 `/root/okno-bot`, `/root/family-vpn-server`).
 
 ## Где что
-- `lib/features/family/family_profile.dart` — зашитая подписка, перебор адресов (зеркала флота → GitHub raw → Рига).
+- `lib/features/family/family_profile.dart` — подписка: **самообновляемый список зеркал** (`okno_mirrors.json` на устройстве ← `<url>/mirrors` агрегатора после каждого удачного обращения) → зашитые `subscription_url` + `subscription_fallbacks` (СЕКРЕТЫ сборки: GH secret `SUBSCRIPTION_FALLBACKS`, Codemagic var группы okno; в репозитории адресов НЕТ) → GitHub raw. Отчёты о сбое шлются на те же адреса (`/okno/crash`).
 - `lib/features/family/country/` — **выбор страны**: `okno_country.dart` (справочник стран, флаг/город/достопримечательность/AI-доступность, разбор тега `Окно-LV-1-Reality`), `okno_country_notifier.dart` (пref `okno_country`, список стран от ядра или из конфига + TCP-проба без VPN, сторож страны), `country_picker.dart` (карточка на главном, нижний лист, флаг с картинкой по наведению/долгому тапу).
 - `assets/landmarks/<cc>.jpg` — фото достопримечательностей (Wikimedia Commons, лицензии в `credits.json`).
 - Главный экран `lib/features/home/widget/home_page.dart`: кнопка «Меню» → `/settings` (долгий тап по заголовку тоже работает).

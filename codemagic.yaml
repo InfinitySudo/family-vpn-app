@@ -57,7 +57,7 @@ workflows:
           PLIST
           # штатная сборка ipa: правильно вкладывает Flutter.framework и HiddifyCore (белый экран был из-за ручной архивации)
           flutter build ipa --release --target lib/main_prod.dart --build-number "$BUILD_NUMBER" \
-            --dart-define sentry_dsn= --dart-define subscription_url="$SUBSCRIPTION_URL" \
+            --dart-define sentry_dsn= --dart-define subscription_url="$SUBSCRIPTION_URL" --dart-define subscription_fallbacks="$SUBSCRIPTION_FALLBACKS" \
             --export-options-plist /tmp/export.plist
           mkdir -p build/ios/ipa
     artifacts:
@@ -113,7 +113,7 @@ workflows:
         script: |
           set -e
           flutter build macos --release --target lib/main_prod.dart \
-            --dart-define sentry_dsn= --dart-define subscription_url="$SUBSCRIPTION_URL"
+            --dart-define sentry_dsn= --dart-define subscription_url="$SUBSCRIPTION_URL" --dart-define subscription_fallbacks="$SUBSCRIPTION_FALLBACKS"
           APP=$(find build/macos/Build/Products/Release -maxdepth 1 -name "*.app" | head -1)
           ENT="$CM_BUILD_DIR/macos/Runner/Release.entitlements"
           IDENT="Developer ID Application"

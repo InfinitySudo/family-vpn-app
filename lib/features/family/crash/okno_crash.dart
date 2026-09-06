@@ -8,6 +8,7 @@ import 'package:gap/gap.dart';
 import 'package:hiddify/core/app_info/app_info_provider.dart';
 import 'package:hiddify/core/logger/logger.dart';
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
+import 'package:hiddify/features/family/family_profile.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -114,10 +115,17 @@ class OknoCrash {
     }
   }
 
-  static const _endpoints = [
-    "http://95.182.90.237:2097/okno/crash",
-    "http://217.60.2.82:2097/okno/crash",
-  ];
+  /// Куда слать: агрегатор/зеркала подписки (`…/okno/<id>` → `…/okno/crash`), сохранённые и зашитые.
+  static Future<List<String>> _endpoints() async {
+    final out = <String>[];
+    for (final u in await familySubscriptionCandidates()) {
+      final i = u.indexOf("/okno/");
+      if (i < 0) continue;
+      final e = "${u.substring(0, i)}/okno/crash";
+      if (!out.contains(e)) out.add(e);
+    }
+    return out;
+  }
 
   /// Собрать и отправить. true — ушло (файлы очищены).
   static Future<bool> send({required String appVersion, String note = ""}) async {
@@ -140,7 +148,7 @@ class OknoCrash {
       "logcat": await _logcat(),
     };
     final body = utf8.encode(jsonEncode(report));
-    for (final url in _endpoints) {
+    for (final url in await _endpoints()) {
       final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
       try {
         final req = await client.postUrl(Uri.parse(url)).timeout(const Duration(seconds: 8));

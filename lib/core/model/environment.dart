@@ -9,6 +9,8 @@ enum Environment {
   static const isPortable = bool.fromEnvironment("portable");
   // Семейная сборка: зашитая ссылка подписки (--dart-define subscription_url=...)
   static const subscriptionUrl = String.fromEnvironment("subscription_url");
+  /// Запасные адреса подписки через запятую (секрет сборки, в репозитории их нет).
+  static const subscriptionFallbacks = String.fromEnvironment("subscription_fallbacks");
 }
 
 enum Release {

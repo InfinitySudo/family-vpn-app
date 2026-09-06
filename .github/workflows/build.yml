@@ -20,6 +20,7 @@ env:
   UPLOAD_ARTIFACT: "${{ inputs.upload-artifact }}"
   TAG_NAME: "${{ inputs.tag-name }}"
   SUBSCRIPTION_URL: "${{ vars.SUBSCRIPTION_URL }}"
+  SUBSCRIPTION_FALLBACKS: "${{ secrets.SUBSCRIPTION_FALLBACKS }}"
   HAS_ANDROID_KEY: "${{ secrets.ANDROID_SIGNING_KEY != '' }}"
   HAS_WINDOWS_KEY: "${{ secrets.WINDOWS_SIGNING_KEY != '' }}"
   HAS_APPLE_CERT: "${{ secrets.APPLE_CERTIFICATE_P12 != '' }}"

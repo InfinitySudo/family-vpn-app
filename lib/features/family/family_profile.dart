@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -5,27 +6,77 @@ import 'package:hiddify/core/logger/logger.dart';
 import 'package:hiddify/core/model/environment.dart';
 import 'package:hiddify/features/profile/data/profile_repository.dart';
 import 'package:hiddify/features/profile/model/profile_entity.dart';
+import 'package:path_provider/path_provider.dart';
 
 /// Имя зашитого семейного профиля.
 const String familyProfileName = "Окно";
 
-/// Запасные адреса той же семейной подписки. 04.09 IP Риги (217.60.2.82) точечно
-/// заблокировали в РФ по TCP: ping шёл, соседние IP были доступны, а наш — нет.
-/// Приложение знало один адрес → «не удалось получить настройки». Теперь адреса
-/// перебираются по порядку: зеркала на узлах флота (сквозной кэш агрегатора Риги),
-/// стабильный адрес на GitHub (не зависит от IP серверов), и сама Рига последней.
-const List<String> familySubscriptionFallbacks = [
-  "http://46.8.238.102:2097/okno/38fa3eb3adb9258d",
-  "http://151.242.69.245:2097/okno/38fa3eb3adb9258d", // Амстердам (NL), 05.09; узел .158 выведен
-  "https://raw.githubusercontent.com/InfinitySudo/family-vpn-app/sub/sub.txt",
-  "http://95.182.90.237:2097/okno/38fa3eb3adb9258d", // второй IP Риги (05.09), из РФ открывается
-  "http://217.60.2.82:2097/okno/38fa3eb3adb9258d",
-];
+/// Адреса семейной подписки — три слоя:
+///  1. сохранённый на устройстве список зеркал (`okno_mirrors.json`): после каждого
+///     удачного обращения приложение забирает у агрегатора `<url>/mirrors` и хранит его.
+///     Флот может ротироваться (сторож заменяет узлы, попавшие под блокировку) —
+///     старые сборки продолжают находить подписку без переустановки;
+///  2. зашитые в сборку адреса: `subscription_url` + `subscription_fallbacks`
+///     (секреты сборки, в репозитории их нет) — только для первого запуска;
+///  3. стабильный публичный адрес на GitHub (не зависит от IP серверов).
+const String familyGithubFallback = "https://raw.githubusercontent.com/InfinitySudo/family-vpn-app/sub/sub.txt";
 
-/// Все кандидаты в порядке приоритета: зашитый в сборку адрес, затем запасные.
-List<String> familySubscriptionCandidates() {
+List<String> familySubscriptionFallbacks() => [
+      for (final u in Environment.subscriptionFallbacks.split(","))
+        if (u.trim().isNotEmpty) u.trim(),
+      familyGithubFallback,
+    ];
+
+File? _mirrorsFile;
+Future<File?> _mirrorsStore() async {
+  if (_mirrorsFile != null) return _mirrorsFile;
+  try {
+    _mirrorsFile = File("${(await getApplicationSupportDirectory()).path}/okno_mirrors.json");
+  } catch (_) {}
+  return _mirrorsFile;
+}
+
+Future<List<String>> storedMirrors() async {
+  try {
+    final f = await _mirrorsStore();
+    if (f == null || !f.existsSync()) return const [];
+    final j = jsonDecode(f.readAsStringSync());
+    final list = (j is Map ? j["mirrors"] : j) as List?;
+    return [for (final e in list ?? const []) if ("$e".startsWith("http")) "$e"];
+  } catch (e) {
+    Logger.bootstrap.debug("family profile: stored mirrors unreadable: $e");
+    return const [];
+  }
+}
+
+/// Забирает свежий список зеркал у агрегатора и сохраняет. Тихо: любая ошибка — просто без обновления.
+Future<void> refreshMirrors(String subscriptionUrl) async {
+  if (!subscriptionUrl.contains("/okno/")) return; // GitHub raw и прочее — списка не отдают
+  final client = HttpClient()..connectionTimeout = const Duration(seconds: 5);
+  try {
+    final req = await client.getUrl(Uri.parse("$subscriptionUrl/mirrors")).timeout(const Duration(seconds: 5));
+    req.headers.set(HttpHeaders.userAgentHeader, "Okno");
+    final resp = await req.close().timeout(const Duration(seconds: 5));
+    if (resp.statusCode != 200) return;
+    final body = await resp.transform(utf8.decoder).join().timeout(const Duration(seconds: 5));
+    final j = jsonDecode(body);
+    final list = [for (final e in ((j is Map ? j["mirrors"] : null) as List? ?? const [])) if ("$e".startsWith("http")) "$e"];
+    if (list.isEmpty) return;
+    final f = await _mirrorsStore();
+    if (f == null) return;
+    f.writeAsStringSync(jsonEncode({"mirrors": list, "saved": DateTime.now().toIso8601String()}), flush: true);
+    Logger.bootstrap.info("family profile: mirrors saved (${list.length})");
+  } catch (e) {
+    Logger.bootstrap.debug("family profile: mirrors refresh failed: $e");
+  } finally {
+    client.close(force: true);
+  }
+}
+
+/// Все кандидаты в порядке приоритета: сохранённые зеркала, зашитый адрес, зашитые запасные, GitHub.
+Future<List<String>> familySubscriptionCandidates() async {
   final out = <String>[];
-  for (final u in [Environment.subscriptionUrl, ...familySubscriptionFallbacks]) {
+  for (final u in [...await storedMirrors(), Environment.subscriptionUrl, ...familySubscriptionFallbacks()]) {
     if (u.isNotEmpty && !out.contains(u)) out.add(u);
   }
   return out;
@@ -52,9 +103,10 @@ Future<bool> _reachable(String url, {Duration timeout = const Duration(seconds: 
 
 /// Первый доступный адрес подписки из [familySubscriptionCandidates] (null — ни один).
 Future<String?> pickFamilySubscriptionUrl() async {
-  for (final url in familySubscriptionCandidates()) {
+  for (final url in await familySubscriptionCandidates()) {
     if (await _reachable(url)) {
       Logger.bootstrap.info("family profile: using $url");
+      unawaited(refreshMirrors(url)); // обновить список адресов на устройстве, не задерживая запуск
       return url;
     }
   }
@@ -65,7 +117,7 @@ Future<String?> pickFamilySubscriptionUrl() async {
 /// активной. Старые семейные профили с другим адресом удаляются, чтобы не
 /// плодить дубли при смене зеркала. Возвращает true, если профиль на месте.
 Future<bool> ensureFamilyProfile(ProfileRepository repo) async {
-  final candidates = familySubscriptionCandidates();
+  final candidates = await familySubscriptionCandidates();
   if (candidates.isEmpty) {
     Logger.bootstrap.warning("family profile: subscription_url is not set");
     return false;
