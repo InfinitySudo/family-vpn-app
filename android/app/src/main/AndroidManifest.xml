@@ -17,6 +17,11 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <!-- Окно: без этих двух ядро sing-box падает при настройке туннеля на Wi-Fi
+         («WifiService: Neither user … has android.permission.ACCESS_WIFI_STATE») — «Непредвиденный сбой»
+         и вылеты 06.09; при ребрендинге ACCESS_NETWORK_STATE потерялся, ACCESS_WIFI_STATE не было -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Окно: обновление прямо из приложения — скачиваем APK и открываем системный установщик -->
