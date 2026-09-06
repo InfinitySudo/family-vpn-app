@@ -114,6 +114,7 @@ class HomePage extends HookConsumerWidget {
                         const SliverToBoxAdapter(child: CountryCard()),
                         // Окно: плашка «доступна новая версия» (проверка при запуске и каждые 12 ч)
                         const SliverToBoxAdapter(child: UpdateBanner()),
+                        const SliverToBoxAdapter(child: UpdateHint()),
                         const SliverFillRemaining(
                           hasScrollBody: false,
                           child: Column(

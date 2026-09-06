@@ -14,6 +14,8 @@ import android.os.Build
 import android.provider.Settings as AndroidSettings
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.FileProvider
+import java.io.File
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import com.hiddify.hiddify.bg.ServiceNotification
@@ -156,6 +158,7 @@ class OknoChannel : FlutterPlugin, MethodChannel.MethodCallHandler {
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         context = binding.applicationContext
+        cleanupUpdates(context)
         methodChannel = MethodChannel(binding.binaryMessenger, METHOD_CHANNEL).also { it.setMethodCallHandler(this) }
         eventChannel = EventChannel(binding.binaryMessenger, EVENT_CHANNEL, JSONMethodCodec.INSTANCE).also {
             it.setStreamHandler(object : EventChannel.StreamHandler {
@@ -198,6 +201,14 @@ class OknoChannel : FlutterPlugin, MethodChannel.MethodCallHandler {
                     val pkg = call.argument<String>("package") ?: ""
                     result.success(startSafely(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$pkg"))))
                 }
+                // Обновление из приложения: Dart скачал APK в filesDir/updates → системный установщик.
+                // Android 8+: нужно разрешение «установка из этого источника» — откроем настройку, Dart попросит нажать ещё раз.
+                "can_install" -> result.success(canInstall(context))
+                "install_apk" -> {
+                    val path = call.argument<String>("path") ?: ""
+                    result.success(installApk(context, path))
+                }
+                "updates_dir" -> result.success(updatesDir(context).absolutePath)
                 "uninstall" -> {
                     val pkg = call.argument<String>("package") ?: ""
                     // системный диалог удаления — пользователь подтверждает сам
@@ -207,6 +218,44 @@ class OknoChannel : FlutterPlugin, MethodChannel.MethodCallHandler {
             }
         } catch (e: Exception) {
             result.error("OKNO", e.message, null)
+        }
+    }
+
+    private fun updatesDir(ctx: Context): File = File(ctx.filesDir, "updates").apply { mkdirs() }
+
+    /** Старые скачанные обновления — в мусор при каждом запуске (после установки файл уже не нужен). */
+    private fun cleanupUpdates(ctx: Context) {
+        try {
+            val cur = ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: ""
+            updatesDir(ctx).listFiles()?.forEach { f ->
+                // файл текущей версии (только что поставленной) или любой старше суток — удаляем
+                if (f.name.contains(cur) || System.currentTimeMillis() - f.lastModified() > 86_400_000L) f.delete()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "cleanupUpdates: ${e.message}")
+        }
+    }
+
+    private fun canInstall(ctx: Context): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.O || ctx.packageManager.canRequestPackageInstalls()
+
+    /** "started" — установщик открыт; "need_permission" — открыт экран разрешения; иначе текст ошибки. */
+    private fun installApk(ctx: Context, path: String): String {
+        val f = File(path)
+        if (!f.isFile) return "file not found"
+        if (!canInstall(ctx)) {
+            startSafely(Intent(AndroidSettings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${ctx.packageName}")))
+            return "need_permission"
+        }
+        return try {
+            val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.okno.fileprovider", f)
+            val intent = Intent(Intent.ACTION_VIEW)
+                .setDataAndType(uri, "application/vnd.android.package-archive")
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (startSafely(intent)) "started" else "installer not available"
+        } catch (e: Exception) {
+            Log.w(TAG, "installApk: ${e.message}")
+            e.message ?: "install failed"
         }
     }
 

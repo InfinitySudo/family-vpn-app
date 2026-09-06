@@ -19,6 +19,8 @@
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Окно: обновление прямо из приложения — скачиваем APK и открываем системный установщик -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
@@ -146,5 +148,15 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Окно: отдать скачанный APK установщику через content:// (filesDir/updates) -->
+        <provider
+            android:name=".OknoFileProvider"
+            android:authorities="${applicationId}.okno.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/okno_file_paths" />
+        </provider>
     </application>
 </manifest>

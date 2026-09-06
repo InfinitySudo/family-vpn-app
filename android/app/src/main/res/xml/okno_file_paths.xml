@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Окно: скачанные обновления (APK) — внутренняя папка приложения, не «Загрузки» -->
+    <files-path name="okno_updates" path="updates/" />
+</paths>

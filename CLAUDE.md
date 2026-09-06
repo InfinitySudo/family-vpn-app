@@ -27,6 +27,7 @@ Android держит один туннель: старый клиент (Happ и
 
 ## Обновления в приложении
 `lib/features/family/update/okno_update.dart` — проверка последнего релиза GitHub при запуске и каждые 12 ч, плашка на главном + строка в настройках. Ссылка на файл по платформе из assets релиза (имена Okno-*.apk/.dmg/.exe/.AppImage — не переименовывать в build.yml).
+**Android (1.0.12): обновление внутри приложения** — `installAndroid`: APK качается в `filesDir/updates/` (не в «Загрузки», прошлые файлы удаляются, прогресс на плашке), затем `OknoChannel.install_apk` → `OknoFileProvider` (`${applicationId}.okno.fileprovider`, `res/xml/okno_file_paths.xml`) → системный установщик (ACTION_VIEW package-archive). Android 8+: без разрешения «установка из этого источника» открывается его экран, потом нажать «Обновить» ещё раз. Файл текущей версии чистится при следующем запуске. iOS — TestFlight, Mac/Win — установщик через браузер, как раньше.
 
 ## Релиз
 1. `pubspec.yaml` version bump → commit → push → тег `vX.Y.Z-okno` (push тега запускает release.yml; либо `gh workflow run release.yml -f tag=…`).

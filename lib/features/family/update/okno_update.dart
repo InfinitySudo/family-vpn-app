@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 import 'package:hiddify/core/app_info/app_info_provider.dart';
 import 'package:hiddify/core/logger/logger.dart';
@@ -128,10 +129,94 @@ class OknoUpdateNotifier extends StateNotifier<AsyncValue<OknoUpdateInfo?>> {
   }
 
   /// Открыть установочный файл / TestFlight / страницу релиза.
+  /// Android: скачиваем APK сами во внутреннюю папку и открываем системный установщик —
+  /// без браузера и без кучи файлов в «Загрузках» (см. installAndroid).
   Future<bool> openDownload() async {
     final info = state.valueOrNull;
     if (info == null) return false;
+    if (Platform.isAndroid && info.downloadUrl.endsWith(".apk")) {
+      return installAndroid(info);
+    }
     return UriUtils.tryLaunch(Uri.parse(info.downloadUrl));
+  }
+
+  static const _okno = MethodChannel("com.hiddify.app/okno");
+
+  /// Ход обновления на Android: null — не идёт; 0..1 — скачивание; >=1 — передано установщику.
+  final ValueNotifier<double?> progress = ValueNotifier(null);
+  /// Что показать под плашкой (ошибка / просьба разрешить установку).
+  final ValueNotifier<String?> hint = ValueNotifier(null);
+
+  Future<bool> installAndroid(OknoUpdateInfo info) async {
+    if (progress.value != null && progress.value! < 1) return false; // уже качаем
+    hint.value = null;
+    try {
+      final dir = Directory(await _okno.invokeMethod<String>("updates_dir") ?? "");
+      if (!dir.existsSync()) dir.createSync(recursive: true);
+      final file = File("${dir.path}/Okno-${info.version}.apk");
+      // прошлые загрузки — в мусор (в т.ч. недокачанные), чтобы не копились
+      for (final f in dir.listSync()) {
+        if (f is File && f.path != file.path) {
+          try { f.deleteSync(); } catch (_) {}
+        }
+      }
+      if (!file.existsSync() || file.lengthSync() < 1024 * 1024) {
+        await _download(info.downloadUrl, file);
+      }
+      progress.value = 1;
+      final res = await _okno.invokeMethod<String>("install_apk", {"path": file.path}) ?? "";
+      if (res == "need_permission") {
+        hint.value = "Разрешите «Окну» устанавливать приложения на открывшемся экране, вернитесь и нажмите «Обновить» ещё раз.";
+        progress.value = null;
+        return false;
+      }
+      if (res != "started") {
+        hint.value = "Не удалось открыть установщик ($res). Скачайте файл со страницы релиза.";
+        progress.value = null;
+        return false;
+      }
+      return true;
+    } on MissingPluginException {
+      // старая нативная часть — как раньше, через браузер
+      progress.value = null;
+      return UriUtils.tryLaunch(Uri.parse(info.downloadUrl));
+    } catch (e) {
+      Logger.bootstrap.warning("okno update: install failed: $e");
+      hint.value = "Не удалось скачать обновление: проверьте связь и попробуйте ещё раз.";
+      progress.value = null;
+      return false;
+    }
+  }
+
+  Future<void> _download(String url, File file) async {
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 15);
+    final tmp = File("${file.path}.part");
+    try {
+      progress.value = 0;
+      final req = await client.getUrl(Uri.parse(url));
+      req.headers.set(HttpHeaders.userAgentHeader, "Okno-updater");
+      final resp = await req.close().timeout(const Duration(seconds: 30)); // редиректы GitHub → objects.githubusercontent.com следуют сами
+      if (resp.statusCode != 200) throw HttpException("HTTP ${resp.statusCode}");
+      final total = resp.contentLength;
+      var got = 0;
+      final sink = tmp.openWrite();
+      try {
+        await for (final chunk in resp) {
+          sink.add(chunk);
+          got += chunk.length;
+          if (total > 0) progress.value = (got / total).clamp(0.0, 0.99);
+        }
+      } finally {
+        await sink.close();
+      }
+      if (total > 0 && got != total) throw HttpException("incomplete: $got/$total");
+      tmp.renameSync(file.path);
+    } catch (_) {
+      try { tmp.deleteSync(); } catch (_) {}
+      rethrow;
+    } finally {
+      client.close(force: true);
+    }
   }
 }
 
@@ -152,7 +237,7 @@ class UpdateBanner extends ConsumerWidget {
     final what = PlatformUtils.isIOS
         ? "Откроется TestFlight — нажмите там «Обновить»."
         : Platform.isAndroid
-            ? "Скачается файл установки — откройте его и подтвердите обновление."
+            ? "Обновится прямо здесь: скачаю и предложу установить — подтвердите."
             : "Скачается установщик — запустите его поверх текущей версии.";
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -185,7 +270,25 @@ class UpdateBanner extends ConsumerWidget {
                 ),
               ),
               const Gap(8),
-              FilledButton(onPressed: () => notifier.openDownload(), child: const Text("Обновить")),
+              ValueListenableBuilder<double?>(
+                valueListenable: notifier.progress,
+                builder: (context, p, _) {
+                  if (p != null && p < 1) {
+                    return SizedBox(
+                      width: 96,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text("${(p * 100).round()}%", style: theme.textTheme.labelMedium),
+                          const Gap(4),
+                          LinearProgressIndicator(value: p, minHeight: 4, borderRadius: BorderRadius.circular(2)),
+                        ],
+                      ),
+                    );
+                  }
+                  return FilledButton(onPressed: () => notifier.openDownload(), child: const Text("Обновить"));
+                },
+              ),
               IconButton(
                 tooltip: "Позже",
                 onPressed: () => notifier.dismiss(info.version),
@@ -195,6 +298,27 @@ class UpdateBanner extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Подсказка под плашкой (ошибка загрузки / нужно разрешение на установку).
+class UpdateHint extends ConsumerWidget {
+  const UpdateHint({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notifier = ref.watch(oknoUpdateProvider.notifier);
+    return ValueListenableBuilder<String?>(
+      valueListenable: notifier.hint,
+      builder: (context, h, _) {
+        if (h == null) return const SizedBox.shrink();
+        final theme = Theme.of(context);
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+          child: Text(h, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error)),
+        );
+      },
     );
   }
 }
