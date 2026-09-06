@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dartx/dartx.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
@@ -11,6 +13,7 @@ import 'package:hiddify/core/model/constants.dart';
 import 'package:hiddify/utils/platform_utils.dart';
 import 'package:hiddify/utils/uri_utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:version/version.dart';
 
 /// Проверка обновлений «Окна» по последнему релизу GitHub.
@@ -137,7 +140,125 @@ class OknoUpdateNotifier extends StateNotifier<AsyncValue<OknoUpdateInfo?>> {
     if (Platform.isAndroid && info.downloadUrl.endsWith(".apk")) {
       return installAndroid(info);
     }
+    if (Platform.isMacOS && info.downloadUrl.endsWith(".dmg")) {
+      return installMacOS(info);
+    }
+    if (Platform.isWindows && info.downloadUrl.endsWith(".exe")) {
+      return installWindows(info);
+    }
+    if (Platform.isLinux && info.downloadUrl.endsWith(".AppImage") && (Platform.environment["APPIMAGE"] ?? "").isNotEmpty) {
+      return installLinux(info);
+    }
     return UriUtils.tryLaunch(Uri.parse(info.downloadUrl));
+  }
+
+  /// Linux (AppImage): скачать новый образ, подменить текущий файл ($APPIMAGE), перезапустить.
+  Future<bool> installLinux(OknoUpdateInfo info) async {
+    if (progress.value != null && progress.value! < 1) return false;
+    hint.value = null;
+    final target = Platform.environment["APPIMAGE"]!;
+    try {
+      final dir = await _desktopUpdatesDir();
+      final img = File("${dir.path}/Okno-${info.version}.AppImage");
+      await _download(info.downloadUrl, img);
+      progress.value = 1;
+      await Process.run("chmod", ["+x", img.path]);
+      final backup = "$target.old";
+      await Process.run("mv", ["-f", target, backup]);
+      final mv = await Process.run("mv", ["-f", img.path, target]);
+      if (mv.exitCode != 0) {
+        await Process.run("mv", ["-f", backup, target]);
+        throw ProcessException("mv", [target], "${mv.stderr}", mv.exitCode);
+      }
+      await Process.start("sh", ["-c", 'sleep 1; rm -f "$backup"; "$target" &'], mode: ProcessStartMode.detached);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      exit(0);
+    } catch (e) {
+      Logger.bootstrap.warning("okno update: linux install failed: $e");
+      hint.value = "Не удалось обновить автоматически ($e). Скачайте AppImage со страницы релиза.";
+      progress.value = null;
+      return false;
+    }
+  }
+
+  /// Папка для скачанных обновлений на ПК (внутри данных приложения, не «Загрузки»).
+  Future<Directory> _desktopUpdatesDir() async {
+    final base = await getApplicationSupportDirectory();
+    final dir = Directory("${base.path}/updates");
+    if (!dir.existsSync()) dir.createSync(recursive: true);
+    for (final f in dir.listSync()) {
+      try { f.deleteSync(recursive: true); } catch (_) {}
+    }
+    return dir;
+  }
+
+  /// macOS: dmg → смонтировать → подменить Okno.app там, где он установлен → перезапуск.
+  /// Приложение нотаризовано, без App Sandbox, поэтому может заменить собственный бандл
+  /// (так делает Sparkle). Запуск прямо из образа dmg (/Volumes) — заменять нечего, просим перетащить в Программы.
+  Future<bool> installMacOS(OknoUpdateInfo info) async {
+    if (progress.value != null && progress.value! < 1) return false;
+    hint.value = null;
+    final exe = Platform.resolvedExecutable; // …/Okno.app/Contents/MacOS/okno
+    final appPath = Directory(exe).parent.parent.parent.path;
+    if (!appPath.endsWith(".app") || appPath.startsWith("/Volumes/")) {
+      hint.value = "Сначала перетащите «Окно» в папку Программы и запустите оттуда — тогда обновление пройдёт само.";
+      return UriUtils.tryLaunch(Uri.parse(info.downloadUrl));
+    }
+    final mnt = "${Directory.systemTemp.path}/okno-update-${info.version}";
+    try {
+      final dir = await _desktopUpdatesDir();
+      final dmg = File("${dir.path}/Okno-${info.version}.dmg");
+      await _download(info.downloadUrl, dmg);
+      progress.value = 1;
+      Directory(mnt).createSync(recursive: true);
+      final att = await Process.run("hdiutil", ["attach", dmg.path, "-nobrowse", "-quiet", "-mountpoint", mnt]);
+      if (att.exitCode != 0) throw ProcessException("hdiutil", ["attach"], "${att.stderr}", att.exitCode);
+      final newApp = Directory(mnt).listSync().where((e) => e.path.endsWith(".app")).map((e) => e.path).firstOrNull;
+      if (newApp == null) throw const FileSystemException("в образе нет .app");
+      final backup = "$appPath.old";
+      await Process.run("rm", ["-rf", backup]);
+      final mv = await Process.run("mv", [appPath, backup]);
+      if (mv.exitCode != 0) throw ProcessException("mv", [appPath], "${mv.stderr}", mv.exitCode);
+      final cp = await Process.run("ditto", [newApp, appPath]);
+      if (cp.exitCode != 0) {
+        await Process.run("rm", ["-rf", appPath]);
+        await Process.run("mv", [backup, appPath]);
+        throw ProcessException("ditto", [newApp], "${cp.stderr}", cp.exitCode);
+      }
+      await Process.run("xattr", ["-dr", "com.apple.quarantine", appPath]);
+      await Process.run("hdiutil", ["detach", mnt, "-quiet"]);
+      // перезапуск: дать процессу выйти, убрать старый бандл, открыть новый
+      await Process.start("sh", ["-c", 'sleep 1; rm -rf "$backup"; open -n "$appPath"'], mode: ProcessStartMode.detached);
+      Logger.bootstrap.info("okno update: macOS bundle replaced, relaunching");
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      exit(0);
+    } catch (e) {
+      Logger.bootstrap.warning("okno update: macOS install failed: $e");
+      await Process.run("hdiutil", ["detach", mnt, "-quiet", "-force"]);
+      hint.value = "Не удалось обновить автоматически ($e). Скачайте dmg со страницы релиза.";
+      progress.value = null;
+      return false;
+    }
+  }
+
+  /// Windows: скачать Setup.exe и запустить тихую установку поверх (Inno Setup: /SILENT закрывает приложение сам).
+  Future<bool> installWindows(OknoUpdateInfo info) async {
+    if (progress.value != null && progress.value! < 1) return false;
+    hint.value = null;
+    try {
+      final dir = await _desktopUpdatesDir();
+      final setup = File("${dir.path}\\Okno-Setup-${info.version}.exe");
+      await _download(info.downloadUrl, setup);
+      progress.value = 1;
+      await Process.start(setup.path, ["/SILENT", "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS"], mode: ProcessStartMode.detached);
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      exit(0);
+    } catch (e) {
+      Logger.bootstrap.warning("okno update: windows install failed: $e");
+      hint.value = "Не удалось обновить автоматически ($e). Скачайте установщик со страницы релиза.";
+      progress.value = null;
+      return false;
+    }
   }
 
   static const _okno = MethodChannel("com.hiddify.app/okno");
@@ -238,7 +359,7 @@ class UpdateBanner extends ConsumerWidget {
         ? "Откроется TestFlight — нажмите там «Обновить»."
         : Platform.isAndroid
             ? "Обновится прямо здесь: скачаю и предложу установить — подтвердите."
-            : "Скачается установщик — запустите его поверх текущей версии.";
+            : "Обновится прямо здесь: скачаю и перезапущу приложение.";
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Material(

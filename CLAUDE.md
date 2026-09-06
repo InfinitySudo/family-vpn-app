@@ -12,6 +12,7 @@
 - Цвета/кнопка подключения — `connection_button.dart`.
 
 ## Правила
+- **Правило Артёма (06.09): любая функция — сразу для ВСЕХ платформ** (Android, iPhone, Mac, Windows, Linux). Сделал для одной — не закончил.
 - Строки семейной сборки — по-русски прямо в коде (локаль ru зашита), переводы Hiddify не трогаем.
 - Без codegen: новые провайдеры — обычные `Provider/StreamProvider/FutureProvider`, а не `@riverpod` (build_runner в CI, локально Flutter нет).
 - Стабильность страны важнее пары мс: сторож переключает узел только если текущий из другой страны или не отвечает.
@@ -27,7 +28,7 @@ Android держит один туннель: старый клиент (Happ и
 
 ## Обновления в приложении
 `lib/features/family/update/okno_update.dart` — проверка последнего релиза GitHub при запуске и каждые 12 ч, плашка на главном + строка в настройках. Ссылка на файл по платформе из assets релиза (имена Okno-*.apk/.dmg/.exe/.AppImage — не переименовывать в build.yml).
-**Android (1.0.12): обновление внутри приложения** — `installAndroid`: APK качается в `filesDir/updates/` (не в «Загрузки», прошлые файлы удаляются, прогресс на плашке), затем `OknoChannel.install_apk` → `OknoFileProvider` (`${applicationId}.okno.fileprovider`, `res/xml/okno_file_paths.xml`) → системный установщик (ACTION_VIEW package-archive). Android 8+: без разрешения «установка из этого источника» открывается его экран, потом нажать «Обновить» ещё раз. Файл текущей версии чистится при следующем запуске. iOS — TestFlight, Mac/Win — установщик через браузер, как раньше.
+**Android (1.0.12): обновление внутри приложения** — `installAndroid`: APK качается в `filesDir/updates/` (не в «Загрузки», прошлые файлы удаляются, прогресс на плашке), затем `OknoChannel.install_apk` → `OknoFileProvider` (`${applicationId}.okno.fileprovider`, `res/xml/okno_file_paths.xml`) → системный установщик (ACTION_VIEW package-archive). Android 8+: без разрешения «установка из этого источника» открывается его экран, потом нажать «Обновить» ещё раз. Файл текущей версии чистится при следующем запуске. **Mac:** dmg → hdiutil attach → подмена бандла по Platform.resolvedExecutable (mv в .old, ditto, xattr -dr quarantine) → `open -n` + exit; из /Volumes — просим перетащить в Программы. **Windows:** Setup.exe `/SILENT /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS`. **Linux:** AppImage подменяет `$APPIMAGE`. iOS — TestFlight (Apple).
 
 ## ⚠ Адрес подписки в сборках
 GitHub Actions берёт `vars.SUBSCRIPTION_URL`, Codemagic (iOS/macOS) — переменную группы `okno` в своём кабинете (API `/apps/<id>/variables`, менять = DELETE + POST, PUT не работает). 06.09 в Codemagic лежал `217.60.2.82:2096/sub/…` (подписка самого x-ui: один узел, без стран и HY2) → на iPhone/Mac «только Латвия». Оба должны быть = агрегатор `http://46.8.238.102:2097/okno/38fa3eb3adb9258d`.
