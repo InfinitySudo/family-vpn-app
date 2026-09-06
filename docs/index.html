@@ -170,6 +170,7 @@
           Скачать для Android
         </a>
         <div class="altlink">Старый телефон? <a data-asset="Okno-Android-arm7.apk" href="https://constantwrestling.cloud/okno/Okno-Android-arm7.apk" rel="noopener">Скачать облегчённую версию</a></div>
+        <div class="altlink">Не скачивается в вашем браузере? <a href="http://constantwrestling.cloud/okno/Okno-Android-arm64.apk" rel="noopener">Ссылка без шифрования</a> или откройте эту страницу в Chrome.</div>
       </div>
     </article>
 
@@ -270,6 +271,14 @@
            href:"https://constantwrestling.cloud/okno/Okno-MacOS.dmg",
            ic:apple}
     };
+    // Старые Android (≤7.1) не знают корень Let's Encrypt: встроенные браузеры (Mi Browser, Samsung) не открывают
+    // наш https, Chrome — открывает. Для них ссылки на зеркало отдаём по http (APK подписан, это безопасно).
+    var am = ua.match(/Android\s+(\d+)(?:\.(\d+))?/i);
+    var oldAndroid = !!(am && (parseInt(am[1],10) < 7 || (parseInt(am[1],10) === 7 && parseInt(am[2]||"0",10) < 1)));
+    if(oldAndroid){
+      document.querySelectorAll("a[href^='https://constantwrestling.cloud/okno/']").forEach(function(a){ a.href=a.href.replace(/^https:/,"http:"); });
+      Object.keys(map).forEach(function(k){ if(map[k].href) map[k].href=map[k].href.replace(/^https:\/\/constantwrestling/,"http://constantwrestling"); });
+    }
     var cardId = {android:"c-android", ios:"c-ios", win:"c-win", mac:"c-mac"}[kind];
     if(cardId){ var c=document.getElementById(cardId); if(c) c.classList.add("on"); }
 
