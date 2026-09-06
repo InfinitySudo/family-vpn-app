@@ -172,6 +172,8 @@ class SettingsPage extends HookConsumerWidget {
           const AlwaysOnVpnTile(),
           // Окно: обновления приложения
           const UpdateSettingsTile(),
+          // Окно: оплата/продление через бота (любая платформа)
+          const PayInBotTile(),
           // Окно: логи разработчику одним нажатием
           const ReportProblemTile(),
           SettingsSection(

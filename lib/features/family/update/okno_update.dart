@@ -458,6 +458,23 @@ class UpdateHint extends ConsumerWidget {
   }
 }
 
+/// Строка в настройках: «Оплата и продление» — открывает Telegram-бот сразу на экране оплаты
+/// (звёзды Telegram / TON / карта). Бот и звёзды работают в Telegram на любой платформе.
+class PayInBotTile extends StatelessWidget {
+  const PayInBotTile({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.payments_outlined),
+      title: const Text("Оплата и продление"),
+      subtitle: const Text("в Telegram-боте: звёзды Telegram, TON, карта · откроется Telegram"),
+      trailing: const Icon(Icons.open_in_new_rounded, size: 18),
+      onTap: () => UriUtils.tryLaunch(Uri.parse("https://t.me/OKHO_VPN_BOT?start=pay")),
+    );
+  }
+}
+
 /// Строка в настройках: текущая версия, результат последней проверки, кнопка «Проверить».
 class UpdateSettingsTile extends ConsumerWidget {
   const UpdateSettingsTile({super.key});
