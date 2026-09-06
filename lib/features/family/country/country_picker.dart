@@ -124,15 +124,51 @@ class LandmarkFlag extends StatefulWidget {
 }
 
 class _LandmarkFlagState extends State<LandmarkFlag> {
-  final _link = LayerLink();
   final _portal = OverlayPortalController();
   Timer? _autoHide;
+
+  /// Где рисовать карточку. Раньше она всегда висела НАД флагом по центру
+  /// (CompositedTransformFollower): флаг стоит у верха экрана и у левого края
+  /// → картинка наполовину уезжала за экран. Теперь считаем по положению флага:
+  /// над ним, если сверху хватает места, иначе под ним; по горизонтали прижимаем
+  /// к краям экрана с отступом.
+  Rect _flagRect = Rect.zero;
+  Size _screen = Size.zero;
+  EdgeInsets _safe = EdgeInsets.zero;
+
+  static const double _cardWidth = 240;
+  static const double _cardHeightEstimate = 240 * 9 / 16 + 60; // фото 16:9 + подпись
+  static const double _gap = 8;
+  static const double _margin = 10;
 
   void _show({Duration? autoHide}) {
     if (!widget.country.hasLandmark) return;
     _autoHide?.cancel();
+    final box = context.findRenderObject() as RenderBox?;
+    if (box != null && box.hasSize) {
+      final origin = box.localToGlobal(Offset.zero);
+      _flagRect = origin & box.size;
+    }
+    _screen = MediaQuery.sizeOf(context);
+    _safe = MediaQuery.paddingOf(context);
     if (!_portal.isShowing) _portal.show();
     if (autoHide != null) _autoHide = Timer(autoHide, _hide);
+  }
+
+  /// Позиция карточки в координатах экрана (для Positioned в Overlay).
+  Positioned _place(Widget card) {
+    final w = _screen.width;
+    final h = _screen.height;
+    final left = (_flagRect.center.dx - _cardWidth / 2).clamp(_margin, (w - _cardWidth - _margin).clamp(_margin, double.infinity)).toDouble();
+    final roomAbove = _flagRect.top - _safe.top - _gap;
+    final roomBelow = h - _safe.bottom - _flagRect.bottom - _gap;
+    if (roomAbove >= _cardHeightEstimate || roomAbove >= roomBelow) {
+      // над флагом, но не выше безопасной зоны
+      final bottom = (h - _flagRect.top + _gap).clamp(_safe.bottom + _margin, h - _safe.top - _margin).toDouble();
+      return Positioned(left: left, bottom: bottom, child: card);
+    }
+    final top = (_flagRect.bottom + _gap).clamp(_safe.top + _margin, h - _safe.bottom - _margin).toDouble();
+    return Positioned(left: left, top: top, child: card);
   }
 
   void _hide() {
@@ -163,25 +199,15 @@ class _LandmarkFlagState extends State<LandmarkFlag> {
         children: [
           // тап мимо — закрыть (для телефона)
           Positioned.fill(child: GestureDetector(behavior: HitTestBehavior.translucent, onTap: _hide)),
-          CompositedTransformFollower(
-            link: _link,
-            targetAnchor: Alignment.topCenter,
-            followerAnchor: Alignment.bottomCenter,
-            offset: const Offset(0, -8),
-            showWhenUnlinked: false,
-            child: _LandmarkCard(country: widget.country),
-          ),
+          _place(_LandmarkCard(country: widget.country)),
         ],
       ),
-      child: CompositedTransformTarget(
-        link: _link,
-        child: MouseRegion(
-          onEnter: (_) => _show(),
-          onExit: (_) => _hide(),
-          child: GestureDetector(
-            onLongPress: () => _show(autoHide: const Duration(seconds: 5)),
-            child: Semantics(label: widget.country.name, child: flag),
-          ),
+      child: MouseRegion(
+        onEnter: (_) => _show(),
+        onExit: (_) => _hide(),
+        child: GestureDetector(
+          onLongPress: () => _show(autoHide: const Duration(seconds: 5)),
+          child: Semantics(label: widget.country.name, child: flag),
         ),
       ),
     );
@@ -201,7 +227,7 @@ class _LandmarkCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       color: theme.colorScheme.surface,
       child: SizedBox(
-        width: 240,
+        width: _LandmarkFlagState._cardWidth,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
