@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -17,6 +18,7 @@ import 'package:hiddify/hiddifycore/generated/v2/hcore/hcore_service.pbgrpc.dart
 import 'package:hiddify/hiddifycore/init_signal.dart';
 import 'package:hiddify/singbox/model/singbox_config_option.dart';
 import 'package:hiddify/features/log/model/log_level.dart' as config_log_level;
+import 'package:hiddify/features/family/guard/okno_vpn_guard.dart';
 import 'package:hiddify/singbox/model/core_status.dart';
 import 'package:hiddify/singbox/model/warp_account.dart';
 
@@ -150,6 +152,17 @@ class HiddifyCoreService with InfraLogger {
     return TaskEither(() async {
       statusController.add(currentState = const CoreStatus.starting());
       loggy.debug("starting");
+      // Окно: сторож чужих VPN на iPhone/Mac/Windows/Linux (Android — в core_interface_mobile,
+      // там своя нативная проверка). Найден чужой туннель → экран с объяснением, не старт.
+      if (!Platform.isAndroid) {
+        final block = await OknoVpnGuard.preflightBlock();
+        if (block != null) {
+          loggy.warning("foreign VPN interfaces: ${block.interfaces}");
+          setPendingForeignVpn({"active": true, "apps": [], "interfaces": block.interfaces});
+          statusController.add(currentState = const CoreStatus.stopped());
+          return left(ConnectionFailure.unexpected(OknoForeignVpnBlock(block)));
+        }
+      }
       final background = await core.setupBackground(path, name);
       if (background != const CoreStatus.started()) {
         statusController.add(currentState = const CoreStatus.stopped());

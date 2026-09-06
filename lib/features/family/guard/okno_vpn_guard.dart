@@ -35,7 +35,11 @@ class OknoForeignVpnInfo {
     this.alwaysOnPackage,
     this.alwaysOnSelf = false,
     this.alwaysOnForeign = false,
+    this.interfaces = const [],
   });
+
+  /// Сетевые интерфейсы чужого VPN (utun/tun/wg/ppp…) — iPhone, Mac, Windows, Linux.
+  final List<String> interfaces;
 
   /// Прямо сейчас в системе есть чужой VPN-туннель (наша служба не запущена).
   final bool active;
@@ -72,12 +76,14 @@ class OknoForeignVpnInfo {
         }
       }
     }
+    final rawIf = m["interfaces"];
     return OknoForeignVpnInfo(
       active: m["active"] == true,
       apps: apps,
       alwaysOnPackage: m["always_on_package"] as String?,
       alwaysOnSelf: m["always_on_self"] == true,
       alwaysOnForeign: m["always_on_foreign"] == true,
+      interfaces: rawIf is List ? [for (final e in rawIf) "$e"] : const [],
     );
   }
 }
@@ -102,15 +108,42 @@ class OknoVpnGuard {
   // iOS: отдельного Swift-файла нет (иначе править pbxproj) — метод живёт в общем канале.
   static const _iosMethod = MethodChannel("com.hiddify.app/method");
 
-  static bool get supported => Platform.isAndroid || Platform.isIOS;
+  static bool get supported => true;
+
+  /// «Подключить всё равно»: следующий preflight пропускаем (iPhone/Mac: другой VPN отключится сам).
+  static bool skipNextPreflight = false;
+
+  // tailscale — mesh-сеть, с Окном не конфликтует, поэтому не считаем
+  static final RegExp _vpnIface = RegExp(r"^(utun|tun|tap|ppp|ipsec|wg|proton|nord|surfshark|expressvpn|Mullvad|OpenVPN|WireGuard|Hiddify|sing)", caseSensitive: false);
+
+  /// Чужой VPN по сетевым интерфейсам (когда наше ядро остановлено). Системные utun на
+  /// Apple всегда есть, но без адресов (или только link-local) — поэтому смотрим адреса.
+  static Future<List<String>> foreignInterfaces() async {
+    try {
+      final list = await NetworkInterface.list(includeLinkLocal: false, includeLoopback: false)
+          .timeout(const Duration(seconds: 3));
+      final out = <String>[];
+      for (final i in list) {
+        if (!_vpnIface.hasMatch(i.name)) continue;
+        final real = i.addresses.where((a) => !a.isLinkLocal && !a.isLoopback && !a.isMulticast).toList();
+        if (real.isEmpty) continue;
+        out.add("${i.name} (${real.first.address})");
+      }
+      return out;
+    } catch (e) {
+      _log.debug("foreignInterfaces failed: $e");
+      return const [];
+    }
+  }
 
   /// Что мешает подключению. Никогда не бросает — при любой ошибке «ничего не мешает».
   static Future<OknoForeignVpnInfo> check() async {
-    if (!supported) return OknoForeignVpnInfo.empty;
+    if (!Platform.isAndroid) {
+      final ifaces = await foreignInterfaces();
+      return OknoForeignVpnInfo(active: ifaces.isNotEmpty, apps: const [], interfaces: ifaces);
+    }
     try {
-      final ch = Platform.isAndroid ? _android : _iosMethod;
-      final method = Platform.isAndroid ? "foreign_vpn" : "okno_foreign_vpn";
-      final res = await ch.invokeMethod<dynamic>(method).timeout(const Duration(seconds: 3));
+      final res = await _android.invokeMethod<dynamic>("foreign_vpn").timeout(const Duration(seconds: 3));
       return OknoForeignVpnInfo.fromMap(res is Map ? res : null);
     } on MissingPluginException {
       return OknoForeignVpnInfo.empty;
@@ -123,12 +156,27 @@ class OknoVpnGuard {
   /// Проверка перед подключением: чужой туннель может ещё пару сотен мс висеть после остановки
   /// нашей службы — перепроверяем, прежде чем блокировать.
   static Future<OknoForeignVpnInfo?> preflightBlock() async {
-    if (!Platform.isAndroid) return null;
-    var info = await check();
-    if (!info.blocks) return null;
+    if (skipNextPreflight) {
+      skipNextPreflight = false;
+      return null;
+    }
+    // iPhone: система держит одну VPN-конфигурацию — при подключении Окна другой VPN
+    // выключается сам, предупреждать не о чем (решение Артёма 06.09).
+    if (Platform.isIOS) return null;
+    if (Platform.isAndroid) {
+      var info = await check();
+      if (!info.blocks) return null;
+      await Future<void>.delayed(const Duration(milliseconds: 700));
+      info = await check();
+      return info.blocks ? info : null;
+    }
+    // iPhone / Mac / Windows / Linux: по интерфейсам, с перепроверкой (наш туннель мог ещё не исчезнуть)
+    var ifaces = await foreignInterfaces();
+    if (ifaces.isEmpty) return null;
     await Future<void>.delayed(const Duration(milliseconds: 700));
-    info = await check();
-    return info.blocks ? info : null;
+    ifaces = await foreignInterfaces();
+    if (ifaces.isEmpty) return null;
+    return OknoForeignVpnInfo(active: true, apps: const [], interfaces: ifaces);
   }
 
   static Stream<Map<dynamic, dynamic>> revokedEvents() {
@@ -252,8 +300,9 @@ class _ForeignVpnSheetState extends ConsumerState<_ForeignVpnSheet> with Widgets
     ref.invalidate(oknoForeignVpnInfoProvider);
   }
 
-  Future<void> _connect() async {
+  Future<void> _connect({bool force = false}) async {
     Navigator.of(context).pop();
+    if (force) OknoVpnGuard.skipNextPreflight = true;
     final st = ref.read(connectionNotifierProvider);
     final notifier = ref.read(connectionNotifierProvider.notifier);
     // toggleConnection выставляет startedByUser и подключает только из Disconnected/ошибки;
@@ -282,12 +331,19 @@ class _ForeignVpnSheetState extends ConsumerState<_ForeignVpnSheet> with Widgets
         intro = "Другое VPN-приложение только что перехватило соединение. "
             "На телефоне может работать только один VPN — пока включён чужой, Окно работать не будет.";
       case OknoGuardReason.preflight:
-        title = "Мешает другой VPN";
+        title = isAndroid ? "Мешает другой VPN" : "Сейчас включён другой VPN";
         intro = foreignAlwaysOn != null
             ? "В настройках Android «постоянным VPN» назначено приложение «$foreignAlwaysOn». "
                 "Пока так, система не даст Окну подключиться."
-            : "Сейчас включён другой VPN. На телефоне может работать только один — выключите его, "
-                "и Окно подключится.";
+            : isAndroid
+                ? "Сейчас включён другой VPN. На телефоне может работать только один — выключите его, "
+                    "и Окно подключится."
+                : Platform.isIOS
+                    ? "iPhone держит только один VPN: при подключении Окна другой отключится сам. "
+                        "Если он потом включается обратно сам (у него стоит «Подключаться по запросу»), "
+                        "Окно будет выбивать — выключите это в Настройки → VPN → (i) у того VPN, или удалите его."
+                    : "Два VPN одновременно мешают друг другу: часть трафика пойдёт мимо Окна или интернет пропадёт. "
+                        "Лучше выключить другой VPN и подключить Окно.";
       case OknoGuardReason.setup:
         title = "Постоянный VPN";
         intro = "Если сделать Окно «постоянным VPN», телефон сам будет поднимать его при включении, "
@@ -338,9 +394,18 @@ class _ForeignVpnSheetState extends ConsumerState<_ForeignVpnSheet> with Widgets
                 style: theme.textTheme.bodyMedium,
               ),
             ] else ...[
+              if (info.interfaces.isNotEmpty)
+                Text(
+                  "Найдено: ${info.interfaces.join(", ")}",
+                  style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                ),
+              const Gap(6),
               Text(
-                "Откройте Настройки → Основные → VPN и управление устройством → VPN и выключите "
-                "(лучше удалите) другой профиль VPN. Затем вернитесь в Окно и нажмите кнопку.",
+                Platform.isIOS
+                    ? "Где выключить: Настройки → VPN (или Основные → VPN и управление устройством)."
+                    : Platform.isMacOS
+                        ? "Где выключить: Системные настройки → VPN, либо в самом приложении другого VPN."
+                        : "Выключите другой VPN в его приложении или в настройках сети.",
                 style: theme.textTheme.bodyMedium,
               ),
             ],
@@ -371,6 +436,14 @@ class _ForeignVpnSheetState extends ConsumerState<_ForeignVpnSheet> with Widgets
               icon: const Icon(Icons.power_settings_new_rounded),
               label: Text(canConnect ? "Подключить Окно" : "Сначала выключите другой VPN"),
             ),
+          if (showBlocker && !canConnect && !isAndroid) ...[
+            const Gap(8),
+            OutlinedButton.icon(
+              onPressed: () => _connect(force: true),
+              icon: const Icon(Icons.play_arrow_rounded),
+              label: Text(Platform.isIOS ? "Подключить всё равно (другой отключится)" : "Подключить всё равно"),
+            ),
+          ],
           if (showBlocker) const Gap(8),
           Row(
             children: [
