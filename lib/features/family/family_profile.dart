@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:hiddify/core/logger/logger.dart';
 import 'package:hiddify/core/model/environment.dart';
 import 'package:hiddify/features/profile/data/profile_repository.dart';
@@ -10,6 +11,56 @@ import 'package:path_provider/path_provider.dart';
 
 /// Имя зашитого семейного профиля.
 const String familyProfileName = "Окно";
+
+/// Состояние доступа — показывает главный экран: нужен ключ / срок вышел / нет сервера.
+enum OknoAccess { unknown, ok, needKey, expired, noServer }
+
+final ValueNotifier<OknoAccess> oknoAccess = ValueNotifier(OknoAccess.unknown);
+
+/// Семейная сборка: ключ зашит в `subscription_url` (…/okno/<id>). Публичная сборка получает
+/// в `subscription_url` только адрес агрегатора (http://ip:2097) и берёт ключ через бота.
+bool get familyBuild => Environment.subscriptionUrl.contains("/okno/");
+
+File? _keyFile;
+Future<File?> _keyStore() async {
+  if (_keyFile != null) return _keyFile;
+  try {
+    _keyFile = File("${(await getApplicationSupportDirectory()).path}/okno_key.json");
+  } catch (_) {}
+  return _keyFile;
+}
+
+/// Личный ключ, полученный через бота: {"sub": url, "mirrors": [...]}.
+Future<Map<String, dynamic>?> storedKey() async {
+  try {
+    final f = await _keyStore();
+    if (f == null || !f.existsSync()) return null;
+    final j = jsonDecode(f.readAsStringSync());
+    if (j is Map && "${j["sub"]}".startsWith("http")) return Map<String, dynamic>.from(j);
+  } catch (e) {
+    Logger.bootstrap.debug("family profile: stored key unreadable: $e");
+  }
+  return null;
+}
+
+Future<void> saveKey(String sub, List<String> mirrors) async {
+  final f = await _keyStore();
+  if (f == null) return;
+  f.writeAsStringSync(jsonEncode({"sub": sub, "mirrors": mirrors, "saved": DateTime.now().toIso8601String()}), flush: true);
+}
+
+/// Адреса агрегатора (только origin) для привязки ключа: сохранённые зеркала, зашитые адреса.
+Future<List<String>> pairingBases() async {
+  final out = <String>[];
+  for (final u in [...await storedMirrors(), Environment.subscriptionUrl, ...familySubscriptionFallbacks()]) {
+    if (!u.startsWith("http") || u.contains("githubusercontent")) continue;
+    try {
+      final o = Uri.parse(u).origin;
+      if (!out.contains(o)) out.add(o);
+    } catch (_) {}
+  }
+  return out;
+}
 
 /// Адреса семейной подписки — три слоя:
 ///  1. сохранённый на устройстве список зеркал (`okno_mirrors.json`): после каждого
@@ -74,9 +125,24 @@ Future<void> refreshMirrors(String subscriptionUrl) async {
   }
 }
 
-/// Все кандидаты в порядке приоритета: сохранённые зеркала, зашитый адрес, зашитые запасные, GitHub.
+/// Все кандидаты в порядке приоритета. Личный ключ: его зеркала (сохранённые и из ответа бота) + адрес.
+/// Семейная сборка: сохранённые зеркала, зашитый адрес, зашитые запасные, GitHub.
 Future<List<String>> familySubscriptionCandidates() async {
   final out = <String>[];
+  final key = await storedKey();
+  if (key != null) {
+    final sub = "${key["sub"]}";
+    final subid = sub.split("/okno/").last.split("/").first;
+    for (final u in [
+      for (final m in await storedMirrors()) if (m.contains(subid)) m,
+      for (final m in (key["mirrors"] as List? ?? const [])) "$m",
+      sub,
+    ]) {
+      if (u.startsWith("http") && !out.contains(u)) out.add(u);
+    }
+    return out;
+  }
+  if (!familyBuild) return out; // публичная сборка без ключа — нужна привязка через бота
   for (final u in [...await storedMirrors(), Environment.subscriptionUrl, ...familySubscriptionFallbacks()]) {
     if (u.isNotEmpty && !out.contains(u)) out.add(u);
   }
@@ -85,31 +151,40 @@ Future<List<String>> familySubscriptionCandidates() async {
 
 /// Быстрая проверка адреса: отвечает ли 200 и не пустым телом за [timeout].
 /// Заблокированный IP в РФ висит на SYN — ждать 30+ секунд на каждом нельзя.
-Future<bool> _reachable(String url, {Duration timeout = const Duration(seconds: 5)}) async {
+/// Возвращает HTTP-статус (200 — годится, 402 — ключ истёк/выключен), 0 — не ответил.
+Future<int> _probe(String url, {Duration timeout = const Duration(seconds: 5)}) async {
   final client = HttpClient()..connectionTimeout = timeout;
   try {
     final req = await client.getUrl(Uri.parse(url)).timeout(timeout);
     req.headers.set(HttpHeaders.userAgentHeader, "Okno");
     final resp = await req.close().timeout(timeout);
-    if (resp.statusCode != 200) return false;
+    if (resp.statusCode != 200) return resp.statusCode;
     final body = await resp.transform(utf8.decoder).join().timeout(timeout);
-    return body.trim().isNotEmpty;
+    return body.trim().isNotEmpty ? 200 : 0;
   } catch (e) {
     Logger.bootstrap.debug("family profile: $url unreachable: $e");
-    return false;
+    return 0;
   } finally {
     client.close(force: true);
   }
 }
 
+
 /// Первый доступный адрес подписки из [familySubscriptionCandidates] (null — ни один).
 Future<String?> pickFamilySubscriptionUrl() async {
+  var expired = false;
   for (final url in await familySubscriptionCandidates()) {
-    if (await _reachable(url)) {
+    final st = await _probe(url);
+    if (st == 200) {
       Logger.bootstrap.info("family profile: using $url");
       unawaited(refreshMirrors(url)); // обновить список адресов на устройстве, не задерживая запуск
       return url;
     }
+    if (st == 402) expired = true; // сервер ответил: срок вышел — дальше перебирать бессмысленно
+  }
+  if (expired) {
+    Logger.bootstrap.warning("family profile: key expired (402)");
+    oknoAccess.value = OknoAccess.expired;
   }
   return null;
 }
@@ -120,14 +195,18 @@ Future<String?> pickFamilySubscriptionUrl() async {
 Future<bool> ensureFamilyProfile(ProfileRepository repo) async {
   final candidates = await familySubscriptionCandidates();
   if (candidates.isEmpty) {
-    Logger.bootstrap.warning("family profile: subscription_url is not set");
+    Logger.bootstrap.warning("family profile: no key yet (public build) — pairing via bot");
+    oknoAccess.value = OknoAccess.needKey;
     return false;
   }
+  oknoAccess.value = OknoAccess.unknown;
   final url = await pickFamilySubscriptionUrl();
   if (url == null) {
     Logger.bootstrap.warning("family profile: no subscription address reachable (${candidates.length} tried)");
+    if (oknoAccess.value != OknoAccess.expired) oknoAccess.value = OknoAccess.noServer;
     return false;
   }
+  oknoAccess.value = OknoAccess.ok;
   final result = await repo
       .upsertRemote(url, userOverride: const UserOverride(name: familyProfileName, updateInterval: 6))
       .run();

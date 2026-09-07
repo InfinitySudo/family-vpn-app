@@ -6,7 +6,7 @@ import 'package:hiddify/core/localization/translations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hiddify/features/family/country/country_picker.dart';
 import 'package:hiddify/features/family/crash/okno_crash.dart';
-import 'package:hiddify/features/family/family_no_server_notice.dart';
+import 'package:hiddify/features/family/access/okno_access.dart';
 import 'package:hiddify/features/family/guard/okno_background.dart';
 import 'package:hiddify/features/family/guard/okno_vpn_guard.dart';
 import 'package:hiddify/features/family/update/okno_update.dart';
@@ -109,10 +109,12 @@ class HomePage extends HookConsumerWidget {
                             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             color: Theme.of(context).colorScheme.surfaceContainer,
                           ),
-                          _ => const FamilyNoServerNotice(),
+                          _ => const OknoAccessNotice(),
                         },
                         // Окно: выбор страны (флаг · пинг · AI) — стабильная страна
                         // нужна, чтобы работали ChatGPT и прочие AI-сервисы.
+                        // Окно: «срок доступа закончился» — оплата в боте (личный ключ)
+                        const SliverToBoxAdapter(child: OknoAccessBanner()),
                         const SliverToBoxAdapter(child: CountryCard()),
                         // Окно: плашка «доступна новая версия» (проверка при запуске и каждые 12 ч)
                         // Окно: «прошлый раз закрылось с ошибкой — отчёт отправлен»
