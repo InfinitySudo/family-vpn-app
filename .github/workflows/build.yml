@@ -222,6 +222,10 @@ jobs:
         run: |
           make ${{ matrix.platform }}-install-deps  
           echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
+          # Windows: dart кладёт исполняемые файлы pub в $PUB_CACHE\bin (LocalAppData), а не в ~/.pub-cache —
+          # без этого «fastforge: command not found» (Windows-сборки падали с 1.0.21)
+          if [ -n "$PUB_CACHE" ]; then echo "$PUB_CACHE/bin" >> $GITHUB_PATH; fi
+          if [ -n "$LOCALAPPDATA" ]; then echo "$LOCALAPPDATA/Pub/Cache/bin" >> $GITHUB_PATH; fi
 
       - name: Setup Android Signing Properties
         if: ${{ inputs.upload-artifact && startsWith(matrix.platform,'android') && env.HAS_ANDROID_KEY == 'true' }}
