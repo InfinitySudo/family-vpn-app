@@ -50,3 +50,10 @@ CI подписывает release только если есть секрет `A
 2. Сторож `release_watch.py` (запуск ТОЛЬКО с `--setenv=GITHUB_TOKEN="$GITHUB_TOKEN"`) оставляет релиз бетой; latest — `okno_release_go.sh` по слову Артёма (или `OKNO_AUTO_LATEST=1` сторожу).
 3. iOS/macOS — Codemagic (appId `6a99eb3c3d7334c2a56148d5`, workflows `ios-testflight`, `macos-notarize`), запуск POST /builds по API; Mac-dmg из Codemagic заливать в релиз поверх GH-сборки (ядро 4.1.0).
 4. Страница загрузки для родных ведёт на `releases/latest`.
+
+## Личный ключ через бота (07.09) — путь к продажам
+- `lib/features/family/access/okno_access.dart`: публичная сборка (в `subscription_url` только origin агрегатора, без `/okno/<id>`) → на главном экране «Получить доступ в Telegram»: приложение хранит `okno_pair.json` (код 10 + секрет 16 симв.), открывает `https://t.me/OKHO_VPN_BOT?start=p_<код>_<секрет>`, каждые 3 с опрашивает `<origin>/okno/pair/<код>?t=<секрет>` по `pairingBases()` (сохранённые зеркала + зашитые origin), при 200 → `saveKey()` → `okno_key.json` {sub, mirrors} → `ensureFamilyProfile`. На компьютере ещё QR той же ссылки.
+- `familyBuild` (`subscription_url` содержит `/okno/`) — старое поведение, ключ зашит. Семейная сборка живёт, пока родные на общем ключе.
+- `oknoAccess` (ValueNotifier: ok / needKey / expired / noServer) выставляет `ensureFamilyProfile`; агрегатор отвечает **402** для выключенного/истёкшего ключа → плашка `OknoAccessBanner` «Срок доступа закончился → Оплатить / Проверить» (и под профилем, и вместо него).
+- Проверка на dev-экране: `OKNO_PUBLIC=1 bash /root/okno-infra/server/dev_run.sh start` (данные приложения `/root/.local/share/app.hiddify.com` перед этим убрать, иначе останется старый профиль).
+- **Переключение публичных сборок** (по слову Артёма): GH `vars.SUBSCRIPTION_URL=http://46.8.238.102:2097`, secret `SUBSCRIPTION_FALLBACKS=http://151.242.69.245:2097;http://95.182.90.237:2097;http://217.60.2.82:2097`; в Codemagic то же для группы okno. Сервер: бот `/start p_…` (pair_start), агрегатор `/okno/pair`, зеркала проксируют pair и 402.
