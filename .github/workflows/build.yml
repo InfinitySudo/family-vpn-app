@@ -262,6 +262,10 @@ jobs:
       - name: Build ${{ matrix.platform }}
         env:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          # Windows: рецепт с кавычками/«;» (subscription_fallbacks) make гонит через MSYS-bash, у которого
+          # PATH «minimal» без pub-cache → «fastforge: command not found» (с 1.0.21). inherit = полный PATH Windows.
+          MSYS2_PATH_TYPE: inherit
+          MSYS_NO_PATHCONV: 1
         run: |
           make ${{ matrix.platform }}-release
 
