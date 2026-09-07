@@ -219,6 +219,7 @@ jobs:
             gradle-${{ runner.os }}-
                   
       - name: Setup dependencies
+        shell: bash   # на Windows шаг по умолчанию идёт в pwsh — $PUB_CACHE и if там не работают
         run: |
           make ${{ matrix.platform }}-install-deps  
           echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
