@@ -61,6 +61,13 @@ else
 	TARGET=lib/main.dart
 endif
 
+# Windows: с 1.0.21 рецепт содержит кавычки/«;» → make запускает его через bash, а bash не находит
+# fastforge.bat по имени без расширения (PATHEXT ему неведом) → «fastforge: command not found».
+FASTFORGE=fastforge
+ifeq ($(OS),Windows_NT)
+FASTFORGE=fastforge.bat
+endif
+
 BUILD_ARGS=--dart-define sentry_dsn=$(SENTRY_DSN) --dart-define subscription_url=$(SUBSCRIPTION_URL) --dart-define subscription_fallbacks="$(SUBSCRIPTION_FALLBACKS)"
 DISTRIBUTOR_ARGS=--skip-clean --build-target $(TARGET) --build-dart-define sentry_dsn=$(SENTRY_DSN) --build-dart-define subscription_url=$(SUBSCRIPTION_URL) --build-dart-define subscription_fallbacks="$(SUBSCRIPTION_FALLBACKS)"
 
@@ -288,7 +295,7 @@ android-aab-release:
 windows-release: windows-zip-release windows-exe-release
 
 windows-zip-release:
-	fastforge package \
+	$(FASTFORGE) package \
 	  --platform windows \
 	  --targets zip \
 	  --skip-clean \
@@ -310,7 +317,7 @@ windows-zip-release:
 	$(GREEN)Successful$(DONE)
 
 windows-exe-release:
-	fastforge package \
+	$(FASTFORGE) package \
 	  --platform windows \
 	  --targets exe \
 	  --skip-clean \
@@ -318,7 +325,7 @@ windows-exe-release:
 	  --build-dart-define=sentry_dsn=$(SENTRY_DSN) --build-dart-define=subscription_url=$(SUBSCRIPTION_URL) --build-dart-define="subscription_fallbacks=$(SUBSCRIPTION_FALLBACKS)"
 
 windows-msix-release:
-	fastforge package \
+	$(FASTFORGE) package \
 	  --platform windows \
 	  --targets msix \
 	  --skip-clean \
