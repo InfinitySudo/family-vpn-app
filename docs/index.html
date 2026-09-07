@@ -112,6 +112,14 @@
   .how h2{font-family:var(--disp);font-weight:800;font-size:22px;margin:0 0 6px;color:#fff}
   .how p{margin:0 auto;max-width:34ch;font-size:16px;opacity:.92}
 
+  .gift{background:var(--accent-ghost);border:1px solid rgba(0,0,0,.05);border-radius:var(--r);padding:26px 24px;margin:18px 0 0;
+    display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center}
+  .gift h2{font-family:var(--disp);font-weight:800;font-size:22px;margin:0 0 6px;color:var(--ink)}
+  .gift p{margin:0;font-size:15.5px;color:var(--ink);max-width:52ch}
+  .gift .price{margin-top:10px;font-size:14px;color:var(--muted)}
+  .gift .price b{color:var(--ink)}
+  .gift .btn{white-space:nowrap}
+  @media (max-width:640px){.gift{grid-template-columns:1fr}.gift .btn{justify-content:center}}
   footer{text-align:center;color:var(--muted);font-size:13.5px;margin-top:34px;line-height:1.7}
   footer a{color:var(--accent)}
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -233,8 +241,19 @@
 
   <div class="how">
     <h2>Как пользоваться</h2>
-    <p>Открыл «Окно», нажал большую круглую кнопку. Стала зелёной — работает. Нажал ещё раз — выключилось. Больше ничего.</p>
+    <p>Открыл «Окно», нажал «Получить доступ» — откроется Telegram, там «Start». Вернулся, нажал большую круглую кнопку. Стала зелёной — работает.</p>
   </div>
+
+  <section class="gift" id="gift">
+    <div>
+      <h2>🎁 Подарить родителям</h2>
+      <p>Живёшь за границей, а родные в России? Оплати доступ в Telegram и перешли им ссылку-подарок: они нажмут — и всё
+        заработает на их телефоне. Никаких настроек, ты ничего не объясняешь по телефону.</p>
+      <div class="price">Первые <b>3 дня бесплатно</b>. Дальше: <b>1 месяц — 149 ₽</b> (75 ⭐) · <b>3 месяца — 399 ₽</b> (200 ⭐) ·
+        <b>год — 1190 ₽</b> (600 ⭐). Оплата звёздами Telegram (картой любой страны) или TON.</div>
+    </div>
+    <a class="btn big" href="https://t.me/OKHO_VPN_BOT?start=gift" target="_blank" rel="noopener">Подарить в Telegram</a>
+  </section>
 
   <footer>
     Ничего настраивать не нужно — всё уже внутри. Кнопки всегда скачивают последнюю версию.<br>
