@@ -142,7 +142,7 @@ Future<List<String>> familySubscriptionCandidates() async {
     }
     return out;
   }
-  if (!familyBuild) return out; // публичная сборка без ключа — нужна привязка через бота
+  if (!familyBuild) return out; // публичная сборка без ключа — нужна привязка через бота (см. adoptLegacyFamilyKey)
   for (final u in [...await storedMirrors(), Environment.subscriptionUrl, ...familySubscriptionFallbacks()]) {
     if (u.isNotEmpty && !out.contains(u)) out.add(u);
   }
@@ -192,7 +192,30 @@ Future<String?> pickFamilySubscriptionUrl() async {
 /// Подтягивает зашитую подписку с первого доступного адреса и делает её
 /// активной. Старые семейные профили с другим адресом удаляются, чтобы не
 /// плодить дубли при смене зеркала. Возвращает true, если профиль на месте.
+/// Обновление со старой семейной сборки (ключ был зашит в `subscription_url`) на публичную:
+/// профиль «Окно» с адресом …/okno/<id> уже лежит в базе — усыновляем его как личный ключ,
+/// чтобы у тех, кому доступ дан до перехода на ключи из бота, всё осталось бесплатным.
+Future<bool> adoptLegacyFamilyKey(ProfileRepository repo) async {
+  if (familyBuild || await storedKey() != null) return false;
+  try {
+    final all = (await repo.watchAll().first).getOrElse((_) => <ProfileEntity>[]);
+    final legacy = all.whereType<RemoteProfileEntity>().where((p) => p.url.contains("/okno/")).toList();
+    if (legacy.isEmpty) return false;
+    final active = (await repo.watchActiveProfile().first).getOrElse((_) => null);
+    final pick = legacy.firstWhere((p) => p.id == active?.id, orElse: () => legacy.first);
+    final subid = pick.url.split("/okno/").last.split("/").first;
+    final mirrors = [for (final m in await storedMirrors()) if (m.contains(subid) && m != pick.url) m];
+    await saveKey(pick.url, mirrors);
+    Logger.bootstrap.info("family profile: legacy family key adopted from profile ${pick.id}");
+    return true;
+  } catch (e) {
+    Logger.bootstrap.warning("family profile: legacy key adoption failed: $e");
+    return false;
+  }
+}
+
 Future<bool> ensureFamilyProfile(ProfileRepository repo) async {
+  await adoptLegacyFamilyKey(repo);
   final candidates = await familySubscriptionCandidates();
   if (candidates.isEmpty) {
     Logger.bootstrap.warning("family profile: no key yet (public build) — pairing via bot");

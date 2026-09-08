@@ -8,3 +8,7 @@
 BASE_BUNDLE_IDENTIFIER=app.okno.family
 SERVICE_IDENTIFIER=com.hiddify.app
 DEVELOPMENT_TEAM=K7BZZQL253
+
+// версия/номер сборки и FLUTTER_ROOT для всех таргетов (в т.ч. HiddifyPacketTunnel);
+// файл создаёт `flutter build ios --config-only`, в репо его нет
+#include? "Flutter/Generated.xcconfig"
