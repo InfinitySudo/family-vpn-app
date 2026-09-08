@@ -34,7 +34,7 @@ Android держит один туннель: старый клиент (Happ и
 GitHub Actions берёт `vars.SUBSCRIPTION_URL`, Codemagic (iOS/macOS) — переменную группы `okno` в своём кабинете (API `/apps/<id>/variables`, менять = DELETE + POST, PUT не работает). 06.09 в Codemagic лежал `217.60.2.82:2096/sub/…` (подписка самого x-ui: один узел, без стран и HY2) → на iPhone/Mac «только Латвия». Оба должны быть = агрегатор `http://46.8.238.102:2097/okno/38fa3eb3adb9258d`.
 
 ## Проверка ДО сборки (с 06.09 — правило Артёма: «сначала смотрю, потом выкатываем»)
-- **Сборки CI — только по слову Артёма и одной пачкой.** Codemagic (iOS/Mac) бесплатен на 500 мин/мес, платить он не будет → iOS/Mac собирать ТОЛЬКО под выкатывание. Правки проверять на dev-экране и `flutter analyze`, Android при нужде одной GH-сборкой.
+- **Сборки CI — только по слову Артёма и одной пачкой.** Xcode Cloud (iOS) — 25 ч/мес бесплатно, Codemagic сгорел и не нужен → iOS собирать ТОЛЬКО под выкатывание. Правки проверять на dev-экране и `flutter analyze`, Android при нужде одной GH-сборкой.
 - Flutter стоит на VPS (`/opt/flutter`, PATH): `flutter analyze` ловит ошибки компиляции за секунды — гонять ПЕРЕД каждым коммитом.
 - Linux-сборка локально (`make linux-amd64-prepare && flutter build linux`) + Xvfb → скриншоты экранов (`scripts/preview.sh`) → Артёму в TG/чат. UI-правки показывать картинкой до CI.
 - CI-сборки = **бета** (prerelease, приложения их не видят). Сторож шлёт в TG ссылки на APK/dmg/TestFlight. После «выкатываем» → `bash /root/okno-infra/server/okno_release_go.sh vX.Y.Z-okno` (latest).
@@ -48,7 +48,8 @@ CI подписывает release только если есть секрет `A
 ## Релиз
 1. `pubspec.yaml` version bump → commit → push → тег `vX.Y.Z-okno` (push тега запускает release.yml; либо `gh workflow run release.yml -f tag=…`).
 2. Сторож `release_watch.py` (запуск ТОЛЬКО с `--setenv=GITHUB_TOKEN="$GITHUB_TOKEN"`) оставляет релиз бетой; latest — `okno_release_go.sh` по слову Артёма (или `OKNO_AUTO_LATEST=1` сторожу).
-3. iOS/macOS — Codemagic (appId `6a99eb3c3d7334c2a56148d5`, workflows `ios-testflight`, `macos-notarize`), запуск POST /builds по API; Mac-dmg из Codemagic заливать в релиз поверх GH-сборки (ядро 4.1.0).
+3. iOS — **Xcode Cloud** (с 08.09, Codemagic сгорел): `python3 scripts/xcode_cloud_workflow.py run` (воркфлоу «TestFlight (main)» `5C72425C-…`, ТОЛЬКО ручной старт, push в main минуты не жгёт) → архив → TestFlight, группа Internal получает сборку сама. Сборка ~10–15 мин, 25 ч/мес бесплатно. Перед сборкой поднять `version:` в pubspec (build number = CI_BUILD_NUMBER, Apple требует номер выше только внутри одной версии). `ios/ci_scripts/ci_post_clone.sh` ставит Flutter, качает HiddifyCore.xcframework, пишет Generated.xcconfig. Env `SUBSCRIPTION_URL/FALLBACKS` в Xcode Cloud через API не ставится → адрес агрегатора по умолчанию, фолбэки пустые (список зеркал приложение обновляет само). macOS-нотаризация через Xcode Cloud пока не настроена (нужен отдельный воркфлоу с `macos/Runner.xcworkspace`); Mac-dmg = GH-сборка.
+   На Mac Артёма проект открывается `bash scripts/mac_bootstrap.sh` (клон по HTTPS, SSH-ключа нет) — нужно только для создания воркфлоу в Xcode.
 4. Страница загрузки для родных ведёт на `releases/latest`.
 
 ## Личный ключ через бота (07.09) — путь к продажам
