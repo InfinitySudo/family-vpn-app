@@ -58,3 +58,11 @@ CI подписывает release только если есть секрет `A
 - `oknoAccess` (ValueNotifier: ok / needKey / expired / noServer) выставляет `ensureFamilyProfile`; агрегатор отвечает **402** для выключенного/истёкшего ключа → плашка `OknoAccessBanner` «Срок доступа закончился → Оплатить / Проверить» (и под профилем, и вместо него).
 - Проверка на dev-экране: `OKNO_PUBLIC=1 bash /root/okno-infra/server/dev_run.sh start` (данные приложения `/root/.local/share/app.hiddify.com` перед этим убрать, иначе останется старый профиль).
 - **Переключение публичных сборок** (по слову Артёма): GH `vars.SUBSCRIPTION_URL=http://46.8.238.102:2097`, secret `SUBSCRIPTION_FALLBACKS=http://151.242.69.245:2097;http://95.182.90.237:2097;http://217.60.2.82:2097`; в Codemagic то же для группы okno. Сервер: бот `/start p_…` (pair_start), агрегатор `/okno/pair`, зеркала проксируют pair и 402.
+
+## Dev-экран (noVNC) — всегда последний код (08.09)
+https://constantwrestling.cloud/okno-dev/vnc.html?autoconnect=1&path=okno-dev/websockify&resize=scale (логин okno, пароль /root/secrets/okno-dev-vnc.pass).
+Приложение = `okno-dev-app.service` (`flutter run -d linux --pid-file /run/okno-dev.pid`, экран :99, адреса из /root/secrets/okno-dev.env,
+лог `journalctl -u okno-dev-app`). Синхронизация с кодом — `/root/okno-infra/server/okno_dev_sync.sh` (таймер `okno-dev-sync` раз в минуту
++ `.git/hooks/post-commit`): любой коммит или правка в рабочем дереве → hot restart (SIGUSR2); pubspec/linux/assets/dependencies.properties →
+полный перезапуск; файлы с `part '*.g.dart'` → build_runner, переводы → slang. Принудительно: `okno_dev_sync.sh full`.
+Артёму про «старая версия на экране» напоминать не нужно — экран обновляется сам.
