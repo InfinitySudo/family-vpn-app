@@ -94,6 +94,20 @@ String serverLabelOfTag(String tag) {
   return tag;
 }
 
+/// Протокол узла из тега: «Reality», «HY2», … (пустая строка — не разобрать).
+String protocolOfTag(String tag) {
+  final m = _tagWithCountry.firstMatch(tag);
+  if (m != null) return m.group(3)!;
+  final l = _tagLegacy.firstMatch(tag);
+  if (l != null) return l.group(2)!;
+  return "";
+}
+
+/// UDP-протокол (Hysteria2/QUIC). Из РФ/ЛНР долгие UDP-потоки к зарубежным адресам
+/// душит DPI: туннель живёт минуты, звонки в Telegram теряют звук (09.09, родители).
+/// Поэтому Reality (TCP) всегда впереди, HY2 — только когда Reality не отвечает.
+bool isUdpProtocolTag(String tag) => protocolOfTag(tag).toUpperCase().startsWith("HY");
+
 /// Значение задержки, которое ядро отдаёт при таймауте.
 const int oknoDelayTimeout = 65000;
 

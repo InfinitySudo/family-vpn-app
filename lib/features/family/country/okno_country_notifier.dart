@@ -29,6 +29,7 @@ class OknoServer {
     this.port = 0,
     this.isAuto = false,
     this.isSelected = false,
+    this.groupSelectedTag = "",
   });
 
   final String tag;
@@ -40,6 +41,8 @@ class OknoServer {
   /// Узел-группа «auto» (ядро само выбирает).
   final bool isAuto;
   final bool isSelected;
+  /// Для группы «auto»: тег узла, который ядро выбрало сейчас.
+  final String groupSelectedTag;
 
   String get label => serverLabelOfTag(tag);
 }
@@ -69,18 +72,33 @@ class OknoCountryStat {
 
   bool get isSelected => servers.any((s) => s.isSelected);
 
-  /// Порядок предпочтения узлов: измеренные и живые (по возрастанию), затем
-  /// неизмеренные, в конце — не отвечающие.
-  List<OknoServer> get ranked {
-    int rank(OknoServer s) => !isDelayKnown(s.delay) ? 1 : (isDelayTimeout(s.delay) ? 2 : 0);
-    final out = [...servers];
-    out.sort((a, b) {
-      final r = rank(a).compareTo(rank(b));
-      if (r != 0) return r;
-      return a.delay.compareTo(b.delay);
-    });
-    return out;
-  }
+  /// Порядок предпочтения узлов (см. [rankServers]).
+  List<OknoServer> get ranked => rankServers(servers);
+}
+
+/// Ярус предпочтения узла: 0 — живой Reality (TCP), 1 — неизмеренный Reality,
+/// 2 — живой HY2 (UDP), 3 — неизмеренный HY2, 4 — не отвечающие (Reality раньше HY2).
+/// Reality впереди HY2 при любом пинге (решение Артёма 09.09): UDP из РФ душат,
+/// и «быстрый» по пингу HY2 умирает посреди звонка.
+int oknoServerTier(OknoServer s) {
+  if (isDelayTimeout(s.delay)) return 4;
+  final udp = isUdpProtocolTag(s.tag);
+  final known = isDelayKnown(s.delay);
+  if (!udp) return known ? 0 : 1;
+  return known ? 2 : 3;
+}
+
+/// Порядок предпочтения: по ярусу [oknoServerTier], внутри яруса — по задержке.
+List<OknoServer> rankServers(List<OknoServer> servers) {
+  final out = [...servers];
+  out.sort((a, b) {
+    final r = oknoServerTier(a).compareTo(oknoServerTier(b));
+    if (r != 0) return r;
+    final u = (isUdpProtocolTag(a.tag) ? 1 : 0).compareTo(isUdpProtocolTag(b.tag) ? 1 : 0);
+    if (u != 0) return u;
+    return a.delay.compareTo(b.delay);
+  });
+  return out;
 }
 
 /// Итог для UI: страны + узел «авто» + источник задержек.
@@ -199,6 +217,7 @@ final oknoCountriesProvider = Provider<AsyncValue<OknoCountriesState>>((ref) {
           delay: item.urlTestDelay,
           isAuto: true,
           isSelected: g.selected == item.tag,
+          groupSelectedTag: item.groupSelectedTag,
         );
         continue;
       }
@@ -270,9 +289,14 @@ class OknoCountryActions {
 final oknoCountryActionsProvider = Provider((ref) => OknoCountryActions(ref));
 
 /// Сторож страны: пока сервис запущен, следит, чтобы выбранный узел был из
-/// сохранённой страны. Переключает ТОЛЬКО если текущий узел из другой страны
-/// или перестал отвечать — иначе не трогает (стабильность важнее пары мс:
-/// у AI-сервисов сессия привязана к адресу).
+/// сохранённой страны и по возможности на Reality (TCP). Переключает ТОЛЬКО если
+/// текущий узел из другой страны, перестал отвечать или это HY2 при живом Reality —
+/// иначе не трогает (стабильность важнее пары мс: у AI-сервисов сессия привязана
+/// к адресу).
+///
+/// В режиме «авто» (страна не выбрана) ядро само берёт самый быстрый узел, и это
+/// часто HY2. Тогда сторож переводит на лучший Reality (любой страны); если Reality
+/// не отвечает — возвращается к HY2.
 class OknoCountryGuard {
   OknoCountryGuard(this.ref) {
     ref.listen<AsyncValue<OutboundGroup?>>(oknoGroupProvider, (_, next) {
@@ -288,31 +312,57 @@ class OknoCountryGuard {
   final Ref ref;
   String? _appliedFor;
   DateTime _lastSwitch = DateTime.fromMillisecondsSinceEpoch(0);
+  DateTime _lastProbe = DateTime.fromMillisecondsSinceEpoch(0);
 
   Future<void> apply({bool force = false}) async {
     final pref = ref.read(oknoCountryPref);
-    if (pref.isEmpty) return;
     final g = ref.read(oknoGroupProvider).valueOrNull;
     if (g == null) return;
     final state = ref.read(oknoCountriesProvider).valueOrNull;
     if (state == null) return;
-    final stat = state.byCode(pref);
-    if (stat == null || stat.servers.isEmpty) return; // такой страны в подписке нет — не трогаем
 
-    final current = stat.servers.where((s) => s.isSelected).firstOrNull;
+    final List<OknoServer> candidates;
+    if (pref.isEmpty) {
+      candidates = [for (final c in state.countries) ...c.servers];
+    } else {
+      final stat = state.byCode(pref);
+      if (stat == null || stat.servers.isEmpty) return; // такой страны в подписке нет — не трогаем
+      candidates = stat.servers;
+    }
+    if (candidates.isEmpty) return;
+
+    var current = candidates.where((s) => s.isSelected).firstOrNull;
+    // «авто»: выбрана группа ядра — смотрим, какой узел она взяла
+    final auto = state.auto;
+    final viaAuto = pref.isEmpty && current == null && auto != null && auto.isSelected;
+    if (viaAuto) {
+      current = candidates.where((s) => s.tag == auto.groupSelectedTag).firstOrNull;
+      // ядро само на Reality (или ещё не выбрало) — не мешаем
+      if (current == null || !isUdpProtocolTag(current.tag)) return;
+    }
+    final ranked = rankServers(candidates);
+    final best = ranked.first;
+    final bestAlive = isDelayKnown(best.delay) && !isDelayTimeout(best.delay);
     final currentOk = current != null && !isDelayTimeout(current.delay);
-    if (currentOk && !force) {
+    // текущий — HY2, а лучший Reality жив → уходим с UDP. Если Reality ещё не
+    // измерен — не прыгаем вслепую, просим ядро померить (не чаще раза в 30 с).
+    final onUdp = currentOk && isUdpProtocolTag(current.tag) && !isUdpProtocolTag(best.tag);
+    final upgrade = onUdp && bestAlive;
+    if (onUdp && !bestAlive && !isDelayKnown(best.delay) && DateTime.now().difference(_lastProbe) > const Duration(seconds: 30)) {
+      _lastProbe = DateTime.now();
+      unawaited(ref.read(proxyRepositoryProvider).urlTest(g.tag).run());
+    }
+    if (currentOk && !force && !upgrade) {
       _appliedFor = g.tag;
       return;
     }
     // не дёргать переключение чаще раза в 3 секунды (ядро шлёт обновления пачками)
     if (!force && DateTime.now().difference(_lastSwitch) < const Duration(seconds: 3)) return;
-    final best = stat.ranked.first;
     if (best.isSelected) return;
-    if (current == null || isDelayTimeout(current.delay) && !isDelayTimeout(best.delay) || force) {
+    if (current == null || upgrade || isDelayTimeout(current.delay) && bestAlive || force) {
       _lastSwitch = DateTime.now();
       _appliedFor = g.tag;
-      Logger.bootstrap.info("okno country: $pref → ${best.tag} (was ${g.selected})");
+      Logger.bootstrap.info("okno country: ${pref.isEmpty ? "авто" : pref} → ${best.tag} (was ${g.selected}${viaAuto ? "/${auto.groupSelectedTag}" : ""})");
       await ref.read(proxyRepositoryProvider).selectProxy(g.tag, best.tag).run();
       if (!isDelayKnown(best.delay)) {
         // пинг ещё не мерили — запустим, чтобы при таймауте сторож переехал на живой узел
