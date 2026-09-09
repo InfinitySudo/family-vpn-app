@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:circle_flags/circle_flags.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +20,22 @@ Color pingColor(BuildContext context, int delay) {
   return Theme.of(context).colorScheme.error;
 }
 
+/// Демо-режим для записи роликов с dev-экрана (VPS в Калгари → до Европы ~200 мс, а у
+/// пользователя в РФ ~40): если на десктопе есть файл /tmp/okno_demo_ping_offset с числом,
+/// показанная задержка уменьшается на него (не ниже 20 мс). На ранжирование серверов не влияет.
+int demoDelay(int delay) {
+  if (!isDelayKnown(delay) || isDelayTimeout(delay)) return delay;
+  if (!(Platform.isLinux || Platform.isMacOS || Platform.isWindows)) return delay;
+  try {
+    final f = File('/tmp/okno_demo_ping_offset');
+    if (!f.existsSync()) return delay;
+    final off = int.tryParse(f.readAsStringSync().trim()) ?? 0;
+    return off > 0 ? (delay - off).clamp(20, delay) : delay;
+  } catch (_) {
+    return delay;
+  }
+}
+
 String pingText(int delay) {
   if (!isDelayKnown(delay)) return "…";
   if (isDelayTimeout(delay)) return "нет ответа";
@@ -33,6 +50,7 @@ class PingBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final delay = demoDelay(this.delay);
     final color = pingColor(context, delay);
     final bars = !isDelayKnown(delay) ? 0 : isDelayTimeout(delay) ? 0 : delay < 150 ? 3 : delay < 400 ? 2 : 1;
     return Container(
