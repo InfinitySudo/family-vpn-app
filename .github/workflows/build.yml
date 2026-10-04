@@ -194,9 +194,17 @@ jobs:
       #     add-to-path: true
       #     link-to-sdk: true
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      # 03.10.2026: android-actions/setup-android@v3 падает на приёме лицензий cmdline-tools 16;
+      # SDK предустановлен на ubuntu-latest — принимаем лицензии сами (как в OnTime/UA Soccer/Wrestling).
+      - name: Setup Android SDK (preinstalled, accept licenses)
         if: startsWith(matrix.platform,'android')
+        run: |
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          SDKM="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKM" --licenses > /dev/null 2>&1 || true
+          "$SDKM" --install "platforms;android-36" "build-tools;36.0.0" "platform-tools" "ndk;28.2.13676358" > /dev/null 2>&1 || true
       # - name: Cache Android SDK
       #   uses: actions/cache@v5
       #   if: startsWith(matrix.platform,'android')
