@@ -24,6 +24,13 @@ import 'package:version/version.dart';
 const String oknoTestFlightUrl = "https://testflight.apple.com/join/UJYhuaWF";
 const Duration oknoUpdateInterval = Duration(hours: 12);
 
+/// Сборка для Google Play (`make android-aab-release` → `--build-dart-define=release=google-play`).
+/// Play запрещает приложению обновлять себя мимо магазина и вести на оплату вне Play Billing,
+/// поэтому в такой сборке самообновление выключено (обновления — через Play), а строка
+/// «Оплата в боте» скрыта.
+const bool kOknoPlayBuild = String.fromEnvironment("release") == "google-play";
+const String oknoPlayStoreUrl = "https://play.google.com/store/apps/details?id=app.okno.family";
+
 class OknoUpdateInfo {
   const OknoUpdateInfo({
     required this.version,
@@ -71,6 +78,7 @@ String? _assetFor(List<dynamic> assets) {
 
 class OknoUpdateNotifier extends StateNotifier<AsyncValue<OknoUpdateInfo?>> {
   OknoUpdateNotifier(this.ref) : super(const AsyncData(null)) {
+    if (kOknoPlayBuild) return; // Google Play обновляет сам — к GitHub не ходим
     // первая проверка чуть после запуска (не мешаем загрузке подписки), дальше — по расписанию
     _initial = Timer(const Duration(seconds: 20), () => unawaited(check()));
     _timer = Timer.periodic(oknoUpdateInterval, (_) => unawaited(check()));
@@ -91,6 +99,7 @@ class OknoUpdateNotifier extends StateNotifier<AsyncValue<OknoUpdateInfo?>> {
   }
 
   Future<OknoUpdateInfo?> check({bool manual = false}) async {
+    if (kOknoPlayBuild) return null;
     if (state.isLoading) return state.valueOrNull;
     state = const AsyncLoading<OknoUpdateInfo?>().copyWithPrevious(state);
     final client = HttpClient()..connectionTimeout = const Duration(seconds: 10);
@@ -465,6 +474,7 @@ class PayInBotTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (kOknoPlayBuild) return const SizedBox.shrink(); // оплата вне Play Billing в Play-сборке не показывается
     return ListTile(
       leading: const Icon(Icons.payments_outlined),
       title: const Text("Оплата и продление"),
@@ -485,6 +495,15 @@ class UpdateSettingsTile extends ConsumerWidget {
     final notifier = ref.read(oknoUpdateProvider.notifier);
     final info = st.valueOrNull;
     final current = ref.watch(appInfoProvider).valueOrNull?.version ?? "";
+    if (kOknoPlayBuild) {
+      return ListTile(
+        leading: const Icon(Icons.verified_rounded),
+        title: const Text("Обновления"),
+        subtitle: Text("версия $current · обновляется через Google Play"),
+        trailing: const Icon(Icons.open_in_new_rounded, size: 18),
+        onTap: () => UriUtils.tryLaunch(Uri.parse(oknoPlayStoreUrl)),
+      );
+    }
     final String subtitle;
     if (st.isLoading) {
       subtitle = "проверяю…";
