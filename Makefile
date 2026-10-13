@@ -283,13 +283,16 @@ android-apk-release:
 	ls -R build/app/outputs
 
 android-aab-release:
+	python3 scripts/play_manifest.py strip
 	fastforge package \
 	  --platform android \
 	  --targets aab \
 	  --skip-clean \
 	  --build-target=$(TARGET) \
 	  --build-dart-define=sentry_dsn=$(SENTRY_DSN) --build-dart-define=subscription_url=$(SUBSCRIPTION_URL) --build-dart-define="subscription_fallbacks=$(SUBSCRIPTION_FALLBACKS)" \
-	  --build-dart-define=release=google-play
+	  --build-dart-define=release=google-play \
+	  || { python3 scripts/play_manifest.py restore; exit 1; }
+	python3 scripts/play_manifest.py restore
 
 # MSIX требует сертификат подписи — семейной сборке не нужен
 windows-release: windows-zip-release windows-exe-release
