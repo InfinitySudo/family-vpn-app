@@ -9,9 +9,12 @@ P = 'android/app/src/main/AndroidManifest.xml'
 if sys.argv[1:] == ['strip']:
     s = open(P).read()
     s = re.sub(r'\s*<!-- Окно: обновление прямо из приложения[^>]*-->\s*<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />', '', s)
-    s = re.sub(r'\s*<uses-permission\s+android:name="android.permission.QUERY_ALL_PACKAGES"\s+tools:ignore="QueryAllPackagesPermission" />', '', s)
-    left = re.findall(r'<uses-permission[^>]*(REQUEST_INSTALL_PACKAGES|QUERY_ALL_PACKAGES)', s)
-    assert not left, f'strip failed: {left}'
+    # QUERY_ALL_PACKAGES приходит и из манифеста плагина installed_apps — поэтому не удаляем, а
+    # помечаем tools:node="remove": manifest merger выкинет его из итогового манифеста AAB.
+    s = re.sub(r'<uses-permission\s+android:name="android.permission.QUERY_ALL_PACKAGES"\s+tools:ignore="QueryAllPackagesPermission" />',
+               '<uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:node="remove" />\n'
+               '    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" tools:node="remove" />', s)
+    assert s.count('tools:node="remove"') == 2, 'strip failed'
     open(P, 'w').write(s); print('manifest: Play permissions stripped')
 elif sys.argv[1:] == ['restore']:
     subprocess.run(['git', 'checkout', '--', P], check=True); print('manifest restored')
