@@ -74,3 +74,11 @@ https://constantwrestling.cloud/okno-dev/vnc.html?autoconnect=1&path=okno-dev/we
   хендлеры (`registerHandlers(with: engineBridge.pluginRegistry)`) — в `didInitializeImplicitFlutterEngine`, в `didFinishLaunching` остался только
   `setupFileManager()`. `Info.plist`: `UIApplicationSceneManifest` с `FlutterSceneDelegate` / конфигурация `flutter` / storyboard Main.
   Xcode Cloud run 4 → TestFlight (pubspec 1.0.27+28). Если понадобится свой SceneDelegate — наследовать `FlutterSceneDelegate`.
+
+## Google Play 13.10: чистая Play-сборка 1.0.27 (vc 28)
+- Ошибки релиза «permissions not declared» = `REQUEST_INSTALL_PACKAGES` + `QUERY_ALL_PACKAGES` (второе подмешивает плагин `installed_apps` при merge).
+  `scripts/play_manifest.py strip` (вызывается из `make android-aab-release`, после — restore) помечает оба `tools:node="remove"`; в манифест
+  добавлен `<queries>` с launcher-intent, чтобы per-app список остался. AAB run 38349711930 проверен (в манифесте AAB обоих нет),
+  залит: alpha (закрытый тест) draft vc28 + internal completed vc28; копия /root/.cache/okno-1.0.27-vc28-play.aab.
+- Остаётся форма **Foreground service** (Special use, VPN) — текст и рецепт видео: `docs/PLAY_DECLARATIONS_2026-10-13.md`. Internal testing:
+  список тестеров на треке пуст — добавить в Console (API e-mail-списки не умеет).
