@@ -67,3 +67,10 @@ https://constantwrestling.cloud/okno-dev/vnc.html?autoconnect=1&path=okno-dev/we
 + `.git/hooks/post-commit`): любой коммит или правка в рабочем дереве → hot restart (SIGUSR2); pubspec/linux/assets/dependencies.properties →
 полный перезапуск; файлы с `part '*.g.dart'` → build_runner, переводы → slang. Принудительно: `okno_dev_sync.sh full`.
 Артёму про «старая версия на экране» напоминать не нужно — экран обновляется сам.
+
+## iOS 1.0.27 (12.10): UIScene (Flutter) — краш на запуске под iOS 27
+- Сборки Xcode 27 без UIScene падают на старте под iOS/iPadOS 27 (Apple TN3187; гайд Flutter «UIScene adoption», API с Flutter 3.38).
+  `ios/Runner/AppDelegate.swift`: `AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate`; `GeneratedPluginRegistrant` и наши
+  хендлеры (`registerHandlers(with: engineBridge.pluginRegistry)`) — в `didInitializeImplicitFlutterEngine`, в `didFinishLaunching` остался только
+  `setupFileManager()`. `Info.plist`: `UIApplicationSceneManifest` с `FlutterSceneDelegate` / конфигурация `flutter` / storyboard Main.
+  Xcode Cloud run 4 → TestFlight (pubspec 1.0.27+28). Если понадобится свой SceneDelegate — наследовать `FlutterSceneDelegate`.
