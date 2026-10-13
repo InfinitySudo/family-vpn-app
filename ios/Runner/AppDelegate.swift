@@ -3,16 +3,22 @@ import Flutter
 import HiddifyCore
 import Sentry
 @main
-@objc class AppDelegate: FlutterAppDelegate {
+// UIScene lifecycle (iOS 27 SDK / Xcode 27 — иначе краш на запуске, Apple TN3187; гайд Flutter «UIScene adoption»):
+// плагины и наши MethodChannel-хендлеры регистрируются в didInitializeImplicitFlutterEngine,
+// сцену ведёт FlutterSceneDelegate (Info.plist → UIApplicationSceneManifest).
+@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
     
     override func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
         setupFileManager()
-        registerHandlers()
-        GeneratedPluginRegistrant.register(with: self)
         return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    }
+
+    func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
+        GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+        registerHandlers(with: engineBridge.pluginRegistry)
     }
     
     func setupFileManager() {
@@ -20,12 +26,12 @@ import Sentry
         FileManager.default.changeCurrentDirectoryPath(FilePath.sharedDirectory.path)
     }
     
-    func registerHandlers() {
-        MethodHandler.register(with: self.registrar(forPlugin: MethodHandler.name)!)
-        PlatformMethodHandler.register(with: self.registrar(forPlugin: PlatformMethodHandler.name)!)
-        FileMethodHandler.register(with: self.registrar(forPlugin: FileMethodHandler.name)!)
-        StatusEventHandler.register(with: self.registrar(forPlugin: StatusEventHandler.name)!)
-        AlertsEventHandler.register(with: self.registrar(forPlugin: AlertsEventHandler.name)!)
+    func registerHandlers(with registry: FlutterPluginRegistry) {
+        MethodHandler.register(with: registry.registrar(forPlugin: MethodHandler.name)!)
+        PlatformMethodHandler.register(with: registry.registrar(forPlugin: PlatformMethodHandler.name)!)
+        FileMethodHandler.register(with: registry.registrar(forPlugin: FileMethodHandler.name)!)
+        StatusEventHandler.register(with: registry.registrar(forPlugin: StatusEventHandler.name)!)
+        AlertsEventHandler.register(with: registry.registrar(forPlugin: AlertsEventHandler.name)!)
 //        LogsEventHandler.register(with: self.registrar(forPlugin: LogsEventHandler.name)!)
 //        GroupsEventHandler.register(with: self.registrar(forPlugin: GroupsEventHandler.name)!)
 //        ActiveGroupsEventHandler.register(with: self.registrar(forPlugin: ActiveGroupsEventHandler.name)!)
